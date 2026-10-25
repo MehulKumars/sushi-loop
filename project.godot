@@ -13,11 +13,11 @@ config_version=5
 config/name="Sushi Loop"
 config/version="0.3.0"
 run/main_scene="res://ui/screens/splash.tscn"
-config/features=PackedStringArray("4.7")
-config/icon="res://assets/icon/icon.png"
 config/quit_on_go_back=false
+config/features=PackedStringArray("4.7")
 boot_splash/bg_color=Color(0.93333334, 0.8901961, 0.8156863, 1)
 boot_splash/show_image=false
+config/icon="res://assets/icon/icon.png"
 
 [autoload]
 
@@ -60,8 +60,8 @@ enabled=PackedStringArray("res://addons/maaacks_game_template/plugin.cfg", "res:
 
 [gui]
 
-common/drop_mouse_on_gui_input_disabled=true
 theme/custom="res://core/ui/themes/sushi.tres"
+common/drop_mouse_on_gui_input_disabled=true
 
 [input]
 
@@ -92,7 +92,6 @@ ui_page_down={
 , Object(InputEventJoypadButton,"resource_local_to_scene":false,"resource_name":"","device":-1,"button_index":10,"pressure":0.0,"pressed":true,"script":null)
 ]
 }
-
 limbo_console_toggle={
 "deadzone": 0.5,
 "events": [Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":-1,"window_id":0,"alt_pressed":false,"shift_pressed":false,"ctrl_pressed":false,"meta_pressed":false,"pressed":false,"keycode":96,"physical_keycode":0,"key_label":0,"unicode":0,"location":0,"echo":false,"script":null)
