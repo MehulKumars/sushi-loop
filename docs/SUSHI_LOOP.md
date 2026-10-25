@@ -109,7 +109,11 @@ Levels are generated offline, checked and baked, never generated at run time.
    - a random-greedy bot (fits first, else random) and a careful bot (exit-first, preview-aware)
      each play it 200 times; their win rates rate the level.
 3. It keeps the candidate closest to the role's target band and bakes it to
-   `data/levels/sushi_v1.json` with `gen_version`. Levels 1-3 are hand-made tutorials.
+   `data/levels/sushi_v1.json` with `gen_version`. Levels 1-2 are hand-made tutorials (level 1
+   forces the counter: its par is at least 1); level 3 is dealt with a very gentle band.
+4. After chapter 1, no level except a rest level may be trivial (greedy wins more than 95%), hard
+   and super-hard levels must reward care (careful beats greedy by more than 0.2), and no level is
+   one narrow line (careful wins at least 35%). `tests/test_sushi_levels.gd` checks the bake.
 
 Roles per 10 levels (roller-coaster sawtooth): 1-3 easy, 4 medium, 5 hard, 6 rest (a new idea at
 low stakes), 7-8 medium, 9 super-hard, 10 rest. Knobs over the game: types 2 → 7, belt 12 → 24,
