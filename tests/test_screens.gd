@@ -1,7 +1,8 @@
 extends GutTest
 ## Every screen and popup at a 16:9 phone, a tall 20:9 phone and a 3:4 tablet: each tappable
 ## control is at least 96 px (48 dp) in both directions, sits inside the screen (unless it is
-## in a scroll area), and does not overlap another tappable control.
+## in a scroll area), and does not overlap another tappable control. The game screen is also
+## checked with its doom card up (step back, retry, keep going).
 ## Popups pause the game, so this test waits with timers that keep running while paused.
 
 const TOUCH := 96.0
@@ -45,7 +46,25 @@ func test_level_select_shows_every_level() -> void:
 	viewport.free()
 
 
-func _layout_problems(path: String, size: Vector2i) -> Array[String]:
+func test_the_doom_card_offers_step_back_retry_and_keep_going_at_every_size() -> void:
+	for size in SIZES:
+		var problems := await _layout_problems(Screens.GAME, size, true)
+		assert_eq(problems, [] as Array[String], "doom card at %dx%d" % [size.x, size.y])
+	var viewport := _viewport(Vector2i(720, 1280))
+	var page := (load(Screens.GAME) as PackedScene).instantiate()
+	viewport.add_child(page)
+	(page.get_node(^"%SushiBoard") as SushiBoardView).doomed.emit()
+	await _settle()
+	var shown: Array[String] = []
+	for node in page.find_children("*", "Button", true, false):
+		if (node as Button).is_visible_in_tree():
+			shown.append((node as Button).text)
+	for text in ["Step back", "Retry", "Keep going"]:
+		assert_has(shown, text)
+	viewport.free()
+
+
+func _layout_problems(path: String, size: Vector2i, doom: bool = false) -> Array[String]:
 	var viewport := _viewport(size)
 	var page := (load(path) as PackedScene).instantiate()
 	viewport.add_child(page)
@@ -53,6 +72,8 @@ func _layout_problems(path: String, size: Vector2i) -> Array[String]:
 		page.call(&"show_win", 3, 2, 20)
 	if path == Screens.CONFIRM:
 		page.call(&"setup", "Reset progress?", "Stars and coins on this phone are deleted.", "Reset", true)
+	if doom:
+		(page.get_node(^"%SushiBoard") as SushiBoardView).doomed.emit()
 	await _settle()
 	var problems: Array[String] = []
 	var screen := Rect2(Vector2.ZERO, Vector2(size))

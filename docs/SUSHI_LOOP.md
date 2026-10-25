@@ -103,8 +103,9 @@ Invariant: after every take no counter plate matches an open bento (R4.1 and R6 
 ### Forgiveness
 
 - **Doom detector:** after each take, the solver searches from the current state in small slices
-  per frame (it never blocks input). If it *proves* no solution remains, the game offers to rewind
-  to the most recent state known to be solvable, for free. If its budget runs out it says nothing.
+  per frame (it never blocks input). If it *proves* no solution remains, the game says so and
+  offers to rewind to the most recent state known to be solvable (for free), to retry the level
+  from the start, or to keep going. If its budget runs out it says nothing.
 - The counter pulses when one slot is left.
 - Hint: the solver's next move, pulsed in the window.
 

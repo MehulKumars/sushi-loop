@@ -1,7 +1,7 @@
 extends Screen
 ## Game screen: one Sushi Loop level (SushiBoard: the belt loop, bentos and counter), the HUD
 ## (pause, level, coins, bentos packed and the stars this attempt is on course for), Undo and Hint
-## in the bottom corners, the doom card (a free step back once the solver proves the level lost)
+## in the bottom corners, the doom card (a free step back or a retry once the solver proves the level lost)
 ## and the end flow: results, then the first-time rewards (chapter bonus, star gifts), then
 ## next / retry / home; after a loss a continue with two more counter slots, free after a
 ## rewarded video or for coins. Firsts are explained once: a new dish gets its card, the counter
@@ -405,7 +405,8 @@ func _pause() -> void:
 			UI.goto(Screens.MAIN_MENU)
 
 
-## The doom card sits over the bentos so the window stays in reach ("Keep going" is allowed).
+## The doom card sits over the bentos so the window stays in reach: step back (free), retry the
+## level from the start, or keep going.
 func _build_doom_card() -> void:
 	var holder := MarginContainer.new()
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -427,7 +428,7 @@ func _build_doom_card() -> void:
 	box.add_child(title)
 	var text := Label.new()
 	text.theme_type_variation = &"CaptionLabel"
-	text.text = "Every way on from here ends with a full counter. Step back to your last good move, free."
+	text.text = "Every way on from here ends with a full counter. Step back to your last good move for free, or start over."
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(text)
@@ -437,11 +438,21 @@ func _build_doom_card() -> void:
 	back.icon = Icons.UNDO
 	back.pressed.connect(_on_step_back)
 	box.add_child(back)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override(&"separation", 14)
+	box.add_child(row)
+	var retry := Button.new()
+	retry.text = "Retry"
+	retry.icon = Icons.REPLAY
+	retry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	retry.pressed.connect(UI.goto.bind(Screens.GAME))
+	row.add_child(retry)
 	var keep := Button.new()
 	keep.theme_type_variation = &"GhostButton"
 	keep.text = "Keep going"
+	keep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	keep.pressed.connect(_hide_doom_card)
-	box.add_child(keep)
+	row.add_child(keep)
 	_doom_card.hide()
 
 
