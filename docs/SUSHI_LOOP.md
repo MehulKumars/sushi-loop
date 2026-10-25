@@ -26,7 +26,7 @@ Every type has exactly 3 plates per bento of that type, so plates = 3 × bentos.
 
 R1. **Belt.** Plate ids are belt slot indices. The plate in slot `i` sits at ring position
 `(i + offset) mod N`. The window is ring positions `0 .. window-1`; plates enter at 0 and leave
-after `window-1`. At the start `offset` is 0.
+after `window-1`. At the start `offset` is 0; if the window is empty, the belt rolls on as in R5.
 
 R2. **Window slot.** Window position `w` shows the plate in slot `(w - offset) mod N`, if any.
 
@@ -57,6 +57,28 @@ R9. **Undo.** Undo restores the state before the last take (including the counte
 undo per level. Rewinding after the doom detector's proof (below) is always free.
 
 Invariant: after every take no counter plate matches an open bento (R4.1 and R6 send them in).
+
+### API (what tests may call)
+
+- `SushiLevel.make(belt: Array, bentos: Array, open := 2, window := 3, counter := 5)`; fields `belt`,
+  `bentos`, `open`, `window`, `counter`, `preview`, `role`, `par`, `star_peak`, `greedy`, `careful`,
+  `seed`, `id`; `to_dict()`, `SushiLevel.from_dict(d)`, `validate() -> String` ("" when valid).
+- `SushiState.start(level)`; `copy()`; `take(w) -> bool`; `continue_game(extra := 2) -> bool`;
+  `window_plate(w) -> int` (plate id or -1); `plate_type(id)`; `on_belt(id)`; `plates_on_belt()`;
+  `ring_position(id)`; `fits(type)`; `open_type(slot)` (-1 when empty); `open_fill(slot)`;
+  fields `offset`, `counter: Rack` (plate ids), `closed`, `lost`, `held` (-1 when none), `peak`,
+  `continues`; `is_won()`, `is_over()`.
+- `SushiSolver.solve(state, budget) -> StateSolver`; `SushiSolver.par(level, budget) -> int` (-1 if
+  unknown); `SushiSolver.hint(state, budget) -> int` (window position, -1 if none).
+- `SushiRun.new(level)`; field `state`; `take(w)`; `undo(extra := false) -> bool` (the free one, or
+  an extra one after a rewarded video); `undos_left()`; `mark_safe()` (the current state is proven
+  solvable); `rewind_to_safe() -> bool`; `continue_game() -> bool`; `stars() -> int`.
+- `SushiBot.choose(state, kind, rng) -> int`; `SushiBot.play(level, kind, rng) -> bool`;
+  `SushiBot.win_rate(level, kind, runs, seed) -> float`; kinds `SushiBot.GREEDY` (a fitting plate
+  at random, else any plate at random) and `SushiBot.CAREFUL` (the fitting plate nearest the exit;
+  else the plate whose bento comes soonest among those shown, more of the same kind on the counter
+  first, then nearest the exit). `choose()` is exact; in `play()` the careful bot slips into a
+  greedy move one take in ten (`SushiBot.SLIP`), so its win rate is graded, like a person's.
 
 ### Stars
 
