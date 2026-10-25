@@ -22,6 +22,8 @@ signal counter_low(room: int)
 signal counter_used
 ## `count` bentos closed from a single take (2 = a double).
 signal combo(count: int)
+## A plate outside the pick window was tapped (the window flashes; the game screen explains once).
+signal outside_tap
 
 const BAND: float = 100.0
 const CORNER: float = 118.0
@@ -79,6 +81,8 @@ var _counter_rect := Rect2()
 var _bento_points: Array[Vector2] = []
 var _preview_points: Array[Vector2] = []
 var _bento_scale: float = 1.0
+## Belt plates outside the window shrink to this on long loops, so neighbours never touch.
+var _belt_fit: float = 1.0
 var _counter_glow: float = 0.0
 var _counter_tween: Tween
 var _belt_tween: Tween
@@ -137,6 +141,8 @@ func undo(extra: bool = false) -> bool:
 	if _busy or run == null or not run.undo(extra):
 		return false
 	_rebuild()
+	SushiSfx.play(&"whoosh")
+	Haptics.tick()
 	return true
 
 
@@ -145,6 +151,8 @@ func rewind() -> bool:
 	if _busy or run == null or not run.rewind_to_safe():
 		return false
 	_rebuild()
+	SushiSfx.play(&"whoosh")
+	Haptics.tick()
 	return true
 
 
@@ -227,6 +235,24 @@ func _gui_input(event: InputEvent) -> void:
 	if w >= 0:
 		accept_event()
 		tap(w)
+	elif _belt_plate_near(press.position):
+		# A plate outside the window: the window flashes to show where takes happen.
+		accept_event()
+		outside_tap.emit()
+		Haptics.tick()
+		if _guide_tween == null or not _guide_tween.is_valid():
+			var flash := create_tween()
+			flash.tween_property(_belt, ^"window_glow", 1.0, 0.12)
+			flash.tween_property(_belt, ^"window_glow", 0.0, 0.35)
+
+
+func _belt_plate_near(point: Vector2) -> bool:
+	if run == null:
+		return false
+	for plate: int in _plates:
+		if not _flying.has(plate) and run.state.on_belt(plate) and point.distance_to(_plates[plate].position) < PLATE_RADIUS * 1.15:
+			return true
+	return false
 
 
 func _process(_delta: float) -> void:
@@ -412,6 +438,8 @@ func _layout() -> void:
 	for i in _previews.size():
 		_previews[i].position = _preview_points[i]
 		_previews[i].scale = Vector2.ONE * PREVIEW_SCALE * _bento_scale
+	var outer_spacing := (_belt.perimeter() - float(state.window) * _belt.spacing()) / maxf(float(state.belt_size() - state.window), 1.0)
+	_belt_fit = clampf(outer_spacing / (PLATE_RADIUS * 2.16), 0.78, 1.0)
 	_place_belt_plates()
 	_arrange_counter(true)
 	var held: SushiPlateView = _plates.get(state.held)
@@ -439,7 +467,7 @@ func _window_scale(ring: float) -> float:
 	var n := float(run.state.belt_size())
 	var d := fposmod(ring + n * 0.5, n) - n * 0.5
 	var outside := maxf(-0.5 - d, d - (float(run.state.window) - 0.5))
-	return lerpf(WINDOW_SCALE, 1.0, clampf(outside / 0.6, 0.0, 1.0)) if outside > 0.0 else WINDOW_SCALE
+	return lerpf(WINDOW_SCALE, _belt_fit, clampf(outside / 0.6, 0.0, 1.0)) if outside > 0.0 else WINDOW_SCALE
 
 
 func _counter_point(index: int) -> Vector2:

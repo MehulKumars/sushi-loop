@@ -96,3 +96,38 @@ func _until_idle() -> void:
 	while _board.is_busy() and guard < 400:
 		await wait_process_frames(1)
 		guard += 1
+
+
+func test_a_tap_on_a_plate_outside_the_window_takes_nothing() -> void:
+	_board.play(SushiLevels.level(1))
+	watch_signals(_board)
+	var state := _board.run.state
+	var ring := -1
+	for plate in state.belt_size():
+		if state.on_belt(plate) and state.ring_position(plate) >= state.window:
+			ring = state.ring_position(plate)
+			break
+	assert_gt(ring, -1, "level 1 has a plate outside the window")
+	var offset := state.offset
+	var press := InputEventMouseButton.new()
+	press.button_index = MOUSE_BUTTON_LEFT
+	press.pressed = true
+	press.position = _board.get_global_transform_with_canvas().affine_inverse() * _board.window_point(ring)
+	_board._gui_input(press)
+	assert_signal_emitted(_board, "outside_tap")
+	assert_signal_not_emitted(_board, "took")
+	assert_eq(_board.run.state.offset, offset, "the belt did not move")
+	assert_false(_board.is_busy())
+
+
+func test_the_star_outlook_follows_the_counter_and_continues() -> void:
+	_board.play(H.cascade(1))
+	assert_eq(_board.star_outlook(), 3)
+	_board.tap(0)
+	await _until_idle()
+	_board.tap(2)
+	await _until_idle()
+	assert_true(_board.run.state.lost)
+	assert_true(_board.continue_game())
+	await _until_idle()
+	assert_eq(_board.star_outlook(), 1, "a continue caps the stars at one")

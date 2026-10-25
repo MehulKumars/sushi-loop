@@ -6,6 +6,7 @@ extends Screen
 ## splash_screen/icon), so the two together read as one short, branded start.
 
 const HOLD_SECONDS: float = 1.1
+const MARK := preload("res://assets/icon/icon_splash_512.png")
 
 var _leaving: bool = false
 
@@ -15,6 +16,15 @@ func _ready() -> void:
 	# One launch = one session (AdPolicy keeps the first session free of interstitials).
 	Progress.set_count("sessions", Progress.count("sessions") + 1)
 	SushiSfx.music()
+	# The app icon's plate and loop over the name, as on Android's own launch splash.
+	var mark := TextureRect.new()
+	mark.texture = MARK
+	mark.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mark.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	mark.custom_minimum_size = Vector2(240, 240)
+	mark.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	%Logo.add_child(mark)
+	%Logo.move_child(mark, 0)
 	var timer := Timer.new()
 	timer.one_shot = true
 	timer.wait_time = HOLD_SECONDS

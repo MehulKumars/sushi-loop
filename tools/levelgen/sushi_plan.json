@@ -40,6 +40,39 @@
 		{"id": 27, "role": "medium", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 2, "counter": 5, "preview": 2, "spread": [0.3, 0.9]},
 		{"id": 28, "role": "medium", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 3, "counter": 5, "preview": 1, "spread": [0.4, 1.0]},
 		{"id": 29, "role": "super", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 2, "counter": 5, "preview": 1, "spread": [0.5, 1.0]},
-		{"id": 30, "role": "rest", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 5, "preview": 2, "spread": [0.2, 0.7]}
+		{"id": 30, "role": "rest", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 5, "preview": 2, "spread": [0.2, 0.7]},
+
+		{"id": 31, "role": "easy", "types": 5, "bentos": 6, "belt": 18, "open": 2, "window": 2, "counter": 5, "preview": 2, "spread": [0.2, 0.7]},
+		{"id": 32, "role": "easy", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 2, "counter": 6, "preview": 2, "spread": [0.3, 0.8]},
+		{"id": 33, "role": "medium", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 2, "counter": 5, "preview": 2, "spread": [0.3, 0.9]},
+		{"id": 34, "role": "medium", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 2, "counter": 5, "preview": 2, "spread": [0.4, 1.0]},
+		{"id": 35, "role": "hard", "types": 6, "bentos": 8, "belt": 24, "open": 2, "window": 2, "counter": 4, "preview": 2, "spread": [0.5, 1.0]},
+		{"id": 36, "role": "rest", "types": 5, "bentos": 6, "belt": 18, "open": 2, "window": 3, "counter": 6, "preview": 3, "spread": [0.1, 0.6]},
+		{"id": 37, "role": "medium", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 2, "counter": 5, "preview": 1, "spread": [0.4, 1.0]},
+		{"id": 38, "role": "medium", "types": 7, "bentos": 9, "belt": 27, "open": 2, "window": 2, "counter": 5, "preview": 2, "spread": [0.4, 1.0]},
+		{"id": 39, "role": "super", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 2, "counter": 4, "preview": 1, "spread": [0.6, 1.0]},
+		{"id": 40, "role": "rest", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 5, "preview": 2, "spread": [0.2, 0.7]},
+
+		{"id": 41, "role": "easy", "types": 4, "bentos": 6, "belt": 18, "open": 1, "window": 3, "counter": 6, "preview": 3, "spread": [0.1, 0.5]},
+		{"id": 42, "role": "easy", "types": 5, "bentos": 6, "belt": 18, "open": 1, "window": 3, "counter": 6, "preview": 3, "spread": [0.2, 0.6]},
+		{"id": 43, "role": "medium", "types": 5, "bentos": 7, "belt": 21, "open": 1, "window": 3, "counter": 6, "preview": 3, "spread": [0.3, 0.8]},
+		{"id": 44, "role": "medium", "types": 6, "bentos": 7, "belt": 21, "open": 1, "window": 3, "counter": 6, "preview": 2, "spread": [0.3, 0.8]},
+		{"id": 45, "role": "hard", "types": 6, "bentos": 8, "belt": 24, "open": 1, "window": 3, "counter": 5, "preview": 2, "spread": [0.4, 0.9]},
+		{"id": 46, "role": "rest", "types": 5, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 6, "preview": 2, "spread": [0.1, 0.6]},
+		{"id": 47, "role": "medium", "types": 6, "bentos": 8, "belt": 24, "open": 1, "window": 3, "counter": 6, "preview": 3, "spread": [0.3, 0.9]},
+		{"id": 48, "role": "medium", "types": 6, "bentos": 8, "belt": 24, "open": 1, "window": 3, "counter": 6, "preview": 2, "spread": [0.3, 0.9]},
+		{"id": 49, "role": "super", "types": 6, "bentos": 8, "belt": 24, "open": 1, "window": 3, "counter": 6, "preview": 3, "spread": [0.5, 1.0]},
+		{"id": 50, "role": "rest", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 5, "preview": 2, "spread": [0.2, 0.7]},
+
+		{"id": 51, "role": "easy", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.2, 0.7]},
+		{"id": 52, "role": "easy", "types": 6, "bentos": 8, "belt": 24, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.3, 0.8]},
+		{"id": 53, "role": "medium", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.4, 1.0]},
+		{"id": 54, "role": "medium", "types": 7, "bentos": 9, "belt": 27, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.4, 1.0]},
+		{"id": 55, "role": "hard", "types": 7, "bentos": 9, "belt": 27, "open": 2, "window": 2, "counter": 4, "preview": 1, "spread": [0.5, 1.0]},
+		{"id": 56, "role": "rest", "types": 6, "bentos": 7, "belt": 21, "open": 2, "window": 3, "counter": 6, "preview": 1, "spread": [0.1, 0.6]},
+		{"id": 57, "role": "medium", "types": 7, "bentos": 10, "belt": 30, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.4, 1.0]},
+		{"id": 58, "role": "medium", "types": 7, "bentos": 9, "belt": 27, "open": 2, "window": 3, "counter": 5, "preview": 0, "spread": [0.4, 1.0]},
+		{"id": 59, "role": "super", "types": 7, "bentos": 10, "belt": 30, "open": 2, "window": 2, "counter": 4, "preview": 0, "spread": [0.5, 1.0]},
+		{"id": 60, "role": "rest", "types": 7, "bentos": 8, "belt": 24, "open": 2, "window": 3, "counter": 6, "preview": 2, "spread": [0.2, 0.7]}
 	]
 }

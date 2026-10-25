@@ -37,15 +37,15 @@ const RIM_COLORS: Array[Color] = [
 ]
 const RIM_STYLES: Array[Rim] = [Rim.SOLID, Rim.DASHED, Rim.DOUBLE, Rim.SOLID, Rim.DASHED, Rim.DOUBLE, Rim.SOLID]
 
-## Each chapter's restaurant: name, belt band, steel rail, counter wood, its grain, the noren
-## curtain over the HUD.
+## Each chapter's restaurant: name, its twist (shown when the chapter opens), belt band, steel rail,
+## counter wood, its grain, the noren curtain on the home screen.
 const SHOPS: Array[Dictionary] = [
-	{"name": "Corner Stall", "belt": Color("262B40"), "rail": Color("C7CED8"), "wood": Color("E9D9BD"), "grain": Color("CDB28A"), "noren": Color("1F3F6B")},
-	{"name": "Harbour Bar", "belt": Color("1C3A45"), "rail": Color("BFD3D6"), "wood": Color("EEE2CC"), "grain": Color("CFBB98"), "noren": Color("24676B")},
-	{"name": "Lantern Alley", "belt": Color("3A2433"), "rail": Color("D8C7BF"), "wood": Color("E3C9A6"), "grain": Color("C09A6C"), "noren": Color("9E3A1E")},
-	{"name": "Tea Garden", "belt": Color("24382B"), "rail": Color("C9D4C2"), "wood": Color("E8DDB6"), "grain": Color("C7B585"), "noren": Color("4F7A3A")},
-	{"name": "Snow Lodge", "belt": Color("2B3442"), "rail": Color("D5DCE6"), "wood": Color("F0E8DC"), "grain": Color("D0BFA6"), "noren": Color("51657E")},
-	{"name": "Golden Counter", "belt": Color("1E1B1F"), "rail": Color("E1C98F"), "wood": Color("EBD3A6"), "grain": Color("C7A26A"), "noren": Color("8C5F12")},
+	{"name": "Corner Stall", "twist": "Take plates from the gold window and pack each bento with three of a kind.", "belt": Color("262B40"), "rail": Color("C7CED8"), "wood": Color("E9D9BD"), "grain": Color("CDB28A"), "noren": Color("1F3F6B")},
+	{"name": "Harbour Bar", "twist": "More dishes ride the belt, and the loops grow longer.", "belt": Color("1C3A45"), "rail": Color("BFD3D6"), "wood": Color("EEE2CC"), "grain": Color("CFBB98"), "noren": Color("24676B")},
+	{"name": "Lantern Alley", "twist": "All seven dishes. Some nights the window is only two plates wide.", "belt": Color("3A2433"), "rail": Color("D8C7BF"), "wood": Color("E3C9A6"), "grain": Color("C09A6C"), "noren": Color("9E3A1E")},
+	{"name": "Tea Garden", "twist": "A two-plate window all chapter: fewer choices, so each one counts.", "belt": Color("24382B"), "rail": Color("C9D4C2"), "wood": Color("E8DDB6"), "grain": Color("C7B585"), "noren": Color("4F7A3A")},
+	{"name": "Snow Lodge", "twist": "One bento open at a time. The counter has more room to help.", "belt": Color("2B3442"), "rail": Color("D5DCE6"), "wood": Color("F0E8DC"), "grain": Color("D0BFA6"), "noren": Color("51657E")},
+	{"name": "Golden Counter", "twist": "No peeking: the next bentos stay hidden until they open.", "belt": Color("1E1B1F"), "rail": Color("E1C98F"), "wood": Color("EBD3A6"), "grain": Color("C7A26A"), "noren": Color("8C5F12")},
 ]
 
 

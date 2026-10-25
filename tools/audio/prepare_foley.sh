@@ -45,8 +45,8 @@ one coin_2 handleCoins2.ogg -9 0.34
 one unwrap cards-pack-open-1.ogg -6 0.9
 one whoosh card-slide-3.ogg -14 0.3
 
-# Music: mono-compatible stereo Ogg, a soft fade at both ends so the loop seam is a breath.
-ffmpeg -loglevel error -y -i "$MUSIC" -ar 44100 \
+# Music: mono Ogg (phone speakers; a third smaller), a soft fade at both ends so the loop seam is a breath.
+ffmpeg -loglevel error -y -i "$MUSIC" -ac 1 -ar 44100 \
 	-af "afade=t=in:st=0:d=2,areverse,afade=t=in:st=0:d=3,areverse,volume=-2dB" \
 	-c:a libvorbis -q:a 2 assets/audio/music/first_light_particles.ogg
 echo "music <- $(basename "$MUSIC")"

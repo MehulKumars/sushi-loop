@@ -79,6 +79,17 @@ Invariant: after every take no counter plate matches an open bento (R4.1 and R6 
   else the plate whose bento comes soonest among those shown, more of the same kind on the counter
   first, then nearest the exit). `choose()` is exact; in `play()` the careful bot slips into a
   greedy move one take in ten (`SushiBot.SLIP`), so its win rate is graded, like a person's.
+- `SushiMeta` (progression): `chapter_count()`, `chapter_range(chapter) -> Vector2i`,
+  `chapter_name(chapter)`, `chapter_stars(chapter)`, `chapter_won(chapter)`,
+  `is_chapter_finale(level)`, `first_level_of(type)`, `new_dishes(level) -> Array[int]`,
+  `mark_dish_seen(type)`, `gifts_ready()`, `gift_progress() -> Vector2i`, `open_gift() -> int`;
+  constants `GIFT_EVERY`, `GIFT_COINS`, `CHAPTER_BONUS`. The game screen's
+  `coins_for(stars, role)` pays the stars.
+- `SushiBoardView`: `play(level)`, `tap(w)`, `window_at(point)`, `window_point(w)`, `undo(extra)`,
+  `rewind()`, `continue_game()`, `hint()`, `is_busy()`, `star_outlook() -> int`; fields `run`,
+  `guide`, `chapter`, `collect_point`; signals `changed`, `took`, `bento_closed`,
+  `bento_collected`, `won`, `lost`, `doomed`, `counter_low(room)`, `counter_used`, `combo(count)`.
+  Effects never keep `is_busy()` true; only the model's events do.
 
 ### Stars
 
@@ -116,8 +127,20 @@ Levels are generated offline, checked and baked, never generated at run time.
    one narrow line (careful wins at least 35%). `tests/test_sushi_levels.gd` checks the bake.
 
 Roles per 10 levels (roller-coaster sawtooth): 1-3 easy, 4 medium, 5 hard, 6 rest (a new idea at
-low stakes), 7-8 medium, 9 super-hard, 10 rest. Knobs over the game: types 2 → 7, belt 12 → 24,
-window 3 → 2, counter 6 → 4, preview 3 → 1.
+low stakes), 7-8 medium, 9 super-hard, 10 rest. Knobs over the game: types 2 → 7, belt 12 → 30,
+window 3 → 2, counter 6 → 4, preview 3 → 0.
+
+60 levels in six chapters. Each chapter after the first three leans on one knob, so it plays
+differently without new rules:
+
+| Chapter | Levels | Twist |
+|---|---|---|
+| 1 Corner Stall | 1-10 | learning the belt; 2 → 4 dishes |
+| 2 Harbour Bar | 11-20 | 5-6 dishes, longer belts |
+| 3 Lantern Alley | 21-30 | all 7 dishes; a two-plate window on some levels |
+| 4 Tea Garden | 31-40 | a two-plate window on most levels |
+| 5 Snow Lodge | 41-50 | one bento open at a time, a roomier counter |
+| 6 Golden Counter | 51-60 | the queue preview is hidden; belts up to 30 |
 
 **The reskin trap:** if the greedy bot wins more than 90% of mid-chapter levels, the moving window
 is not creating real choices. `tools/levelgen/reports/` keeps the rating CSV that answers this.
@@ -126,15 +149,24 @@ is not creating real choices. `tools/levelgen/reports/` keeps the rating CSV tha
 
 | Moment | Effect |
 |---|---|
-| Belt steps | one tween on the shared belt offset, 0.12 s ease-out; wooden tick |
-| Take | plate lifts (1.08) and arcs into the bento or onto the counter, about 0.2 s; porcelain clink |
-| Bento closes | lid drops with a squash, gold ribbon, rice-grain particles; lid clack |
-| Cascade | counter plates hop in 0.08 s apart, each a semitone higher |
-| One slot left | counter outline pulse and a low tone, no shake |
-| Fail | belt eases to a stop, counter nudges ±3 px, two-note fall |
-| Level complete | small confetti, results |
+| Belt steps | one tween on the shared belt offset, 0.14 s ease-out; crescent slats move; a soft tick |
+| Take | the plate squashes as it lifts, its shadow drops away, it arcs (turning a little) into the bento or onto the counter in about 0.22 s; a ceramic chip on the lift |
+| Dish lands in a bento | the cell pops, three sparkles, a porcelain clink (5 recorded variants) |
+| Plate lands on the counter | a squash and settle, a wooden knock |
+| Bento closes | lid drops with a squash, gold cord and bow, a puff of sakura petals; lid knock, then a koto chime; the packed bento flies up to the HUD bar, whose icon pops |
+| Several bentos from one take | the chime climbs the pentatonic scale; "Double!" / "Triple!" over the bentos |
+| Cascade | counter plates hop in 0.08 s apart, each a step higher on the D yo pentatonic scale |
+| One slot left | counter settings pulse vermillion and a low muted pluck, no shake |
+| Three stars lost | the HUD stars pop and drop to two; a one-time tip says the limit |
+| Fail | the held plate rings vermillion, counter nudges ±4 px, a soft three-note fall |
+| Level complete | the music dips, a koto phrase, sakura petals drift down over the counter; results stars ping in rising notes and the coins count up with a coin sound |
 
-Haptics: 12 ms on a take, 30 ms when a bento closes, 60 ms on a win (Settings toggle).
+All motion scales with Reduce Motion (off = no particles, no squash, no flights to the HUD);
+particles are pooled one-shot CPUParticles2D. Sound cues are tuned to one scale so ladders never
+clash. Music: one calm CC0 piano-ambient track, ducked under fanfares.
+
+Haptics: 12 ms on a take, 30 ms when a bento closes, 40 ms on a combo, 60 ms on a win, 80 ms on a
+loss (Settings toggle).
 
 ## Palette
 
@@ -146,27 +178,63 @@ Haptics: 12 ms on a take, 30 ms when a bento closes, 60 ms on a win (Settings to
 | Blue: rim 2 | `#1F64A8` |
 | Gold: accent on ink (buttons, ribbons, the window) | `#E8B04B` |
 
-Vermillion and blue are close in greyscale, so the silhouette is the identity and rims also differ
-by pattern (solid, dashed, double).
+The dish is the identity; the rim backs it up with a colour and a pattern unique to each type:
 
-## v1 (free, like Halves)
+| Type | Dish | Rim |
+|---|---|---|
+| 0 | Salmon nigiri | blue `#1F64A8`, solid |
+| 1 | Onigiri | vermillion `#B8461A`, dashed |
+| 2 | Dango | ink `#23283B`, double |
+| 3 | Ebi fry | green `#4F8A3A`, solid |
+| 4 | Naruto | purple `#7A5BA6`, dashed |
+| 5 | Purin | teal `#2E8B8B`, double |
+| 6 | Ika | gold `#C98A1B`, solid |
 
-No shop, purchases, daily reward or ranks. Coins (10 per star) are the booster currency:
+Each chapter is a restaurant with its own belt, rail, wood and noren colours (`SushiPalette.SHOPS`).
+
+## Progression (between levels)
+
+- **Chapters** of ten levels, each a new restaurant (look above). The home screen shows the
+  chapter, levels won and its stars; level select groups levels by chapter with "Hard" and
+  "Super hard" badges, so the sawtooth is visible ahead.
+- **Welcome card:** a chapter's first level (from chapter 2) names the restaurant and its twist,
+  once (`SushiPalette.SHOPS[].twist`).
+- **New on the menu:** the first time a dish rides the belt (from level 2) a card shows it on its
+  plate, with its name and a line about it. Once per install.
+- **Star gifts:** every 15 stars opens a gift of 100 coins, right after the win that earned it (or
+  from the home screen's card).
+- **Chapter bonus:** the first win of a chapter's last level gives 100 coins and a card naming the
+  next restaurant.
+- **Three-star outlook:** the HUD shows the stars this attempt is on course for; the counter
+  marks its first `star_peak` settings with a small gold star.
+- **One-time tips:** the first plate on the counter, the first lost third star.
+
+## Economy (coins; no purchases)
+
+No shop, purchases, daily reward or ranks. Coins are the booster currency: 10 per star, ×1.5 on
+hard levels, ×2 on super-hard levels; star gifts and chapter bonuses as above.
 
 | Booster | Free per level | Then |
 |---|---|---|
-| Undo (R9) | 1 | 30 coins |
-| Hint (the solver's next move) | 1 | 30 coins |
-| Continue after a loss (R8: +2 counter slots) | - | 50 coins (Retry is always free) |
+| Undo (R9) | 1 | 30 coins, or a rewarded video when short of coins |
+| Hint (the solver's next move) | 1 | 30 coins, or a rewarded video when short of coins |
+| Continue after a loss (R8: +2 counter slots) | - | one free rewarded video per attempt, or 50 coins; at most 3 continues per attempt (Retry is always free) |
 | Step back after a doom proof | always free | - |
 
 Levels 1-2 guide the first take: the window frame breathes and the plate that fits glows with a tap ripple.
 
-## Ads (when ads are switched on)
+## Ads (all through `Services.ads`; mocks until AdMob is wired)
 
-Rewarded: continue (+2 counter slots). Interstitials: none in the first session or before level 8,
-then at most 1 per 2 won levels, 120 s apart, when the results screen opens. Never on the fail
-screen, never after a rewarded ad, no paid continue on spike levels.
+Rewarded, always the player's choice and clearly labelled: the continue (free, once per attempt),
+×2 coins on the results of a win, a hint or an undo when the player is short of coins (asked in a
+confirm first). Interstitials: none in the first session or before level 8, then at most 1 per 2
+won levels, 120 s apart, 60 s clear of a rewarded video, only when the results screen of a win
+opens. Never on the fail screen, never on Next / Retry, never during play. No banners. In a
+release build the mock reports no ads ready, so no video offers show until AdMob is wired (phone test
+builds made from the APK preset carry the `test_ads` feature and keep the mock offers; the Play preset never does).
+
+Review: the Play in-app review sheet is requested once, after the first win of level 10 (the end
+of chapter 1); Play decides whether it shows. Never after a loss.
 
 ## Later mechanics (one per chapter, not built yet)
 
@@ -177,9 +245,11 @@ bento (3 different types), domed plates that reveal only in the window.
 
 - Claude builds: belt stepping, the solver, generator, bots and rating CSV, the doom detector,
   `Rack`, tests.
-- The human owns: the seven sushi silhouettes (the code-drawn ones are placeholders), level order,
-  the greybox question ("is choosing between 3 plates an interesting decision?"), foley, a
-  respectful-theme check (no caricature, no fake Japanese text), the store video.
+- The human owns: the dish art (Fluent Emoji 3D renders, MIT, stand in; own art can replace
+  `assets/food/` file for file), level order, the greybox question ("is choosing between 3 plates
+  an interesting decision?"), foley and music by ear (Kenney CC0 recordings, synthesised koto cues
+  and a CC0 track stand in), a respectful-theme check (no caricature, no fake Japanese text), the
+  store video.
 
 ## Keep / kill (written before building)
 

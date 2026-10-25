@@ -76,8 +76,9 @@ func _demo_progress() -> void:
 		Progress.record_win(i + 1, earned[i])
 	var now := Time.get_unix_time_from_system()
 	Progress.claim_daily(Time.get_date_string_from_unix_time(int(now) - 2 * 86400))
-	# Every dish introduced already, so its card does not open over the game screen shots.
+	# Every dish and chapter introduced already, so its card does not open over the game screen shots.
 	Progress.set_count("dishes", (1 << SushiLevel.TYPE_COUNT) - 1)
+	Progress.set_count("chapters_seen", 99)
 	Progress.claim_daily(Time.get_date_string_from_unix_time(int(now) - 86400))
 	Progress.add_coins(1250 - Progress.coins())
 

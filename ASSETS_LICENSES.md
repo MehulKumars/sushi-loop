@@ -15,7 +15,7 @@ Never: CC-BY-NC (bars ad-supported games), CC-BY-ND, GPL or CC-BY-SA in closed-s
 ## Written for this template
 | Item | Notes |
 |---|---|
-| `core/`, `ui/`, `tests/`, `tools/`, the five styles and their themes, `styled_background.gdshader`, `hit_flash.gdshader`, the switch and slider artwork (SVG drawn in `tools/build_theme.gd`), the placeholder app icon (`icon.png`, `assets/template_icon/`) | Original work for this template; reuse freely in your games |
+| `core/`, `ui/`, `tests/`, `tools/`, the five styles and their themes, `styled_background.gdshader`, `hit_flash.gdshader`, the switch and slider artwork (SVG drawn in `tools/build_theme.gd`) | Original work for this template; reuse freely in your games |
 
 ## Fonts (all SIL Open Font License 1.1, from Google Fonts)
 The licence text for each is next to it in `core/ui/fonts/OFL_<name>.txt`. OFL fonts may be
@@ -45,6 +45,7 @@ Add one row per asset as you add them: file, author, licence, source URL.
 | `assets/food/*.png` (nigiri, onigiri, dango, ebi_fry, naruto, purin, ika) and `assets/deco/*.png` (sakura, lantern, gift, star, sparkles, bento, party, tea, chopsticks) | Microsoft, Fluent Emoji (3D renders, 256 px; files renamed) | MIT (`assets/food/LICENSE_fluentui_emoji.txt`, packed into builds) | github.com/microsoft/fluentui-emoji |
 | `assets/audio/sfx/` take_*, clink_*, counter_*, lid_*, tick_*, click_*, coin_*, unwrap, whoosh | Kenney (kenney.nl): Casino Audio, Impact Sounds, Interface Sounds, UI Audio, RPG Audio; trimmed and levelled by `tools/audio/prepare_foley.sh` | CC0 | kenney.nl/assets |
 | `assets/audio/sfx/` hop, chime, warn, fail, win, star, reveal | Synthesised by `tools/audio/synth_sushi_sfx.gd` (a koto-like pluck in the D yo pentatonic scale; no samples) | Original work | - |
-| `assets/audio/music/first_light_particles.ogg` | Yoiyami, "First Light Particles" (faded at both ends, Ogg Vorbis) | CC0 | opengameart.org/node/182244 |
+| `assets/audio/music/first_light_particles.ogg` | Yoiyami, "First Light Particles" (mono, faded at both ends, Ogg Vorbis) | CC0 | opengameart.org/node/182244 |
 | Plates, rims, bento boxes, belt, counter wood, serving board, noren curtain and the menu emblem | Drawn in code (`game/sushi/sushi_art.gd`, `game/kit/path_belt.gd`, `game/sushi/sushi_noren.gd`, `game/sushi/sushi_logo.gd`) | Original work | - |
 | The Sushi Loop style (`core/ui/styles/sushi.tres`) and its theme | Palette from the studio plan | Original work | - |
+| App icons (`assets/icon/`) | Rendered by `tools/make_icon.gd`: a code-drawn plate, loop and seigaiha cloth around the Fluent Emoji nigiri (MIT, above) | Original work + MIT | - |

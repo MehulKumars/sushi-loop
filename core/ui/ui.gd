@@ -112,8 +112,16 @@ func toast(text: String, icon: Texture2D = null, seconds: float = 2.2) -> void:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(label)
 	_toast_layer.add_child(panel)
-	await get_tree().process_frame
+	# A long message wraps inside the screen's margins instead of running off both edges.
 	var view := panel.get_viewport_rect().size
+	var room := view.x - 2.0 * panel.get_theme_constant(&"screen_margin", &"Tokens") \
+			- panel.get_theme_stylebox(&"panel").get_minimum_size().x - (60.0 if icon != null else 0.0)
+	var font := label.get_theme_font(&"font")
+	var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, label.get_theme_font_size(&"font_size")).x
+	if width > room:
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.custom_minimum_size.x = room
+	await get_tree().process_frame
 	var top := SafeAreaMargin.get_insets(panel.get_viewport()).y
 	panel.position = Vector2((view.x - panel.size.x) / 2.0, top + 150.0)
 	panel.modulate.a = 0.0

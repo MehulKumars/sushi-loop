@@ -33,6 +33,9 @@ func _initialize() -> void:
 	Progress.path = "user://playtest_progress.json"
 	Progress.reset()
 	Progress.add_coins(200)
+	# Every dish and chapter introduced already, so no "new on the menu" card covers the board.
+	Progress.set_count("dishes", (1 << SushiLevel.TYPE_COUNT) - 1)
+	Progress.set_count("chapters_seen", 99)
 	root.size = size
 	Screens.level = level
 	change_scene_to_file(Screens.GAME)

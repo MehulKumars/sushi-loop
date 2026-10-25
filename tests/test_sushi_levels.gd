@@ -1,10 +1,10 @@
 extends GutTest
 ## The baked levels (data/levels/sushi_v1.json) against docs/SUSHI_LOOP.md "Levels" and "Stars".
 
-const COUNT: int = 30
+const COUNT: int = 60
 
 
-func test_thirty_levels_in_order_with_the_gen_version() -> void:
+func test_sixty_levels_in_order_with_the_gen_version() -> void:
 	var levels := SushiLevels.all()
 	assert_eq(levels.size(), COUNT)
 	assert_eq(SushiLevels.gen_version(), SushiLevels.GEN_VERSION)
@@ -93,8 +93,23 @@ func test_hard_levels_reward_care() -> void:
 
 func test_sizes_in_range() -> void:
 	for level in SushiLevels.all():
-		assert_between(level.belt.size(), 12, 24, "level %d" % level.id)
+		assert_between(level.belt.size(), 12, 30, "level %d" % level.id)
 		assert_between(level.window, 2, 3)
 		assert_between(level.counter, 4, 6)
 		assert_between(level.open, 1, 2)
 		assert_between(level.preview, 0, 3)
+
+
+## Chapters 4-6 each lean on one knob (docs/SUSHI_LOOP.md "Levels"): mostly a two-plate window, one
+## bento open at a time, no queue preview.
+func test_late_chapters_have_their_twist() -> void:
+	var twists := {4: func(l: SushiLevel) -> bool: return l.window == 2,
+			5: func(l: SushiLevel) -> bool: return l.open == 1,
+			6: func(l: SushiLevel) -> bool: return l.preview == 0}
+	for chapter: int in twists:
+		var levels := SushiMeta.chapter_range(chapter)
+		var with_twist := 0
+		for id in range(levels.x, levels.y + 1):
+			if (twists[chapter] as Callable).call(SushiLevels.level(id)):
+				with_twist += 1
+		assert_gte(with_twist, 5, "chapter %d: most levels carry the twist" % chapter)

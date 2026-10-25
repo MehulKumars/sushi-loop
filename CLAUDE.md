@@ -1,9 +1,12 @@
 # Sushi Loop: rules for Claude Code
 
-Sushi Loop is game 2 of the studio plan, started from our mobile game template on 2026-10-25. Rules, API and the
-level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. v1 is free like Halves (no shop,
-daily reward, ranks or purchases; coins pay for boosters). Template core changes made for this game: the `sushi` style
-as the project theme, autoload **Sound** (`core/audio/sound.gd`, from Halves), `Progress.LEVEL_COUNT_DEFAULT` = 30.
+Sushi Loop is game 2 of the studio plan, started from our mobile game template on 2026-10-25. Rules, API, progression,
+economy and the level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. No shop, daily
+reward, ranks or purchases; coins pay for boosters, and opt-in rewarded videos (continue, ×2 coins, a hint or undo when
+short of coins) go through `Services.ads` (mocks until AdMob is wired). Template core changes made for this game: the
+`sushi` style as the project theme, autoload **Sound** (`core/audio/sound.gd`, from Halves; effects may have recorded
+variants `id_1.wav`, `id_2.wav`... picked at random), `Progress.count()`/`set_count()` (named counts: sessions, gifts,
+dishes seen, tips), `Progress.LEVEL_COUNT_DEFAULT` = 60.
 
 Godot **4.7.2** (pinned) · GDScript only · 2D portrait, 720 px wide canvas · Android first · Compatibility renderer.
 The human owns fun, feel, art, balance, the store page and release decisions. Claude builds code with a checkable answer.
@@ -23,12 +26,16 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
   - `dev_tools.gd` autoload **DevTools**: debug-only console commands (`fps`, `log_input`, `display_info`, `safe_area`...).
 - `ui/` the game's screens (`ui/screens/`) and popups (`ui/popups/`); paths in `ui/screens.gd` (`Screens.*`). Edit per game.
   `ui/screens/game.gd` hosts the gameplay: replace its %Board and call `finish(won, stars)`.
-- `scenes/loading_screens/`: Maaack's loading screen, for SceneLoader (heavy scenes only). `assets/template_icon/`: placeholder app icon.
+- `scenes/loading_screens/`: Maaack's loading screen, for SceneLoader (heavy scenes only). `assets/icon/`: the app icons (made by `tools/make_icon.gd`).
 - `game/` gameplay scenes and scripts (create per game). `data/` baked levels and configs (create per game).
-  This repo: `game/sushi/` (SushiState rules, SushiSolver, SushiBot, SushiRun, SushiDoom, the board and art views),
+  This repo: `game/sushi/` (SushiState rules, SushiSolver, SushiBot, SushiRun, SushiDoom, SushiMeta progression,
+  the board, plate, bento and art views, SushiPalette with the chapter restaurants, SushiNoren, SushiLogo),
   `game/kit/` (StateSolver, SolverState, Rack, PathBelt: generic, meant for the template later),
   `data/levels/sushi_v1.json` (baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.json`),
-  `tools/sushi_playtest.gd`, `tools/audio/synth_sushi_sfx.gd`. Sound cues go through `SushiSfx` (run-time lookup).
+  `assets/food/` and `assets/deco/` (Fluent Emoji 3D renders, MIT), `assets/audio/` (Kenney CC0 foley via
+  `tools/audio/prepare_foley.sh`, koto cues from `tools/audio/synth_sushi_sfx.gd`, a CC0 music track),
+  `ui/popups/reward_popup.*` (new dish, gift, chapter cards), `tools/sushi_playtest.gd`.
+  Sound cues and music go through `SushiSfx` (run-time lookup of the Sound autoload).
 - `tests/` GUT tests named `test_*.gd`. `tools/` scripts and the hook. `addons/` vendored plugins.
 - `.claude/skills/`: mobile-ui, game-design-review, godot-game-feel, level-generation, mobile-performance-audit,
   play-release. Use them for those tasks.
@@ -111,12 +118,21 @@ levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human
 - Set scene properties: `godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/credits.tscn Safe extra_margin 24`
 - Remove scene nodes: `godot --headless --path . -s tools/scene_edit.gd -- --remove res://ui/popups/x.tscn Path/To/Node`
   (string values from PowerShell 5.1 lose their quotes: run those edits from Bash as `'"Text"'`)
-- Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last]` (about 2 min for 30);
+- Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last]` (about 7 min for 60; a range
+  run rewrites the CSV with only that range, so bake all before committing);
   knob study: `tools/levelgen/bench_sushi.gd`. Ratings land in `tools/levelgen/reports/sushi_v1.csv`.
 - Play a level for real (needs a window): `godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]`
   -> frames in `build/playtest/<mode>_<level>/`
 - A new `class_name` fails the hook ("not declared") until `godot --headless --path . --import` refreshes the cache.
+- App icons (needs a window): `godot --path . -s tools/make_icon.gd` -> `assets/icon/`. Sounds: `godot --headless --path .
+  -s tools/audio/synth_sushi_sfx.gd` (koto cues); `bash tools/audio/prepare_foley.sh <kenney packs> <music wav>` (foley, music).
+- Package id `com.mehulkumars.sushiloop` (own id: it shared Halves' placeholder id, so the APK would not install next to
+  Halves). Changeable until the first Play upload; that call is the human's.
 - Debug APK: `godot --headless --path . --export-debug "Android Debug APK" build/game-debug.apk`
+- Phone test APK (release speed, ~29.5 MiB: send limit 30 MiB): the same preset with the release template, signed with
+  the debug key through env vars `GODOT_ANDROID_KEYSTORE_RELEASE_PATH=%APPDATA%/Godot/keystores/debug.keystore`,
+  `..._USER=androiddebugkey`, `..._PASSWORD=android`, then `--export-release "Android Debug APK" build/sushi-loop-test.apk`.
+  The preset's `test_ads` feature keeps the mock video offers on; the Play preset never has it.
 - Phone: `adb install -r build/game-debug.apk`, `adb exec-out screencap -p > shot.png`, Back = `adb shell input keyevent 4`,
   console = `adb shell input keyevent 68` then `adb shell input text fps` + `adb shell input keyevent 66`, logs `adb logcat -s godot`.
 - Release AAB: see the play-release skill (needs the game's release keystore).

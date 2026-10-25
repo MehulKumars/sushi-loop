@@ -37,6 +37,8 @@ var _hint_badge: Label
 var _doom_card: PanelContainer
 var _stars: StarRating
 var _results: Modal
+## The hard-level banner while it shows (it leaves early on the first take or a doom card).
+var _banner: Control
 
 @onready var _board: SushiBoardView = %SushiBoard
 
@@ -51,6 +53,7 @@ func _ready() -> void:
 	%Coins.value = Progress.coins()
 	%GoalIcon.texture = Icons.CHECK_CIRCLE
 	%GoalIcon.modulate = get_theme_color(&"gold", &"Tokens")
+	(%Goal as ProgressBar).value = 0.0
 	%PauseButton.pressed.connect(_pause)
 	%UndoButton.pressed.connect(_on_undo)
 	%HintButton.pressed.connect(_on_hint)
@@ -62,11 +65,13 @@ func _ready() -> void:
 	(%Goal as Control).get_parent().add_child(_stars)
 	_board.changed.connect(_refresh)
 	_board.took.connect(_hide_doom_card)
+	_board.took.connect(_hide_banner)
 	_board.doomed.connect(_show_doom_card)
 	_board.won.connect(_on_won)
 	_board.lost.connect(_on_lost)
 	_board.counter_used.connect(_on_counter_used)
 	_board.bento_collected.connect(_on_bento_collected)
+	_board.outside_tap.connect(_on_outside_tap)
 	_board.chapter = SushiLevels.chapter(_level)
 	_board.guide = _level <= GUIDED_LEVELS
 	_build_doom_card()
@@ -181,6 +186,10 @@ func _rewards(first_win: bool) -> void:
 				"Coins for hints, undos and continues.", GIFT_ART, coins)
 		await card.closed
 	%Coins.value = Progress.coins()
+	# The Play review sheet once, after the first chapter is done (a happy moment; Play decides
+	# whether it actually shows).
+	if first_win and _level == SushiMeta.chapter_range(1).y and _tip_once("review_asked"):
+		Services.review.request_review()
 
 
 func _on_won() -> void:
@@ -210,6 +219,8 @@ func _watch_video(placement: String) -> bool:
 		UI.toast("No video right now. Try again in a moment.", Icons.VIDEO)
 		return false
 	Services.ads.show_rewarded(placement)
+	if Services.ads is MockAdsService:
+		UI.toast("Test build: a real video would play here", Icons.VIDEO, 1.5)
 	var result: Array = await Services.ads.rewarded_finished
 	ad_policy.record_rewarded_shown(Time.get_ticks_msec() / 1000.0)
 	var granted := result.size() > 1 and bool(result[1])
@@ -315,8 +326,18 @@ func _place_collect_point() -> void:
 	_board.collect_point = icon.get_global_rect().get_center()
 
 
-## New dishes get their card (from level 2: level 1 is the guided start); hard levels a banner.
+## A new chapter's welcome card (its twist), then new dishes' cards (from level 2: level 1 is the
+## guided start), each once; otherwise hard levels get a banner.
 func _intro(level: SushiLevel) -> void:
+	var chapter := SushiLevels.chapter(_level)
+	var welcome := chapter > 1 and _level == SushiMeta.chapter_range(chapter).x and Progress.count("chapters_seen") < chapter
+	if welcome:
+		Progress.set_count("chapters_seen", chapter)
+		await get_tree().create_timer(0.35).timeout
+		var card := UI.open(load(Screens.REWARD) as PackedScene)
+		card.call(&"show_gift", "Welcome to %s" % SushiMeta.chapter_name(chapter), "Chapter %d" % chapter,
+				str(SushiPalette.shop(chapter).twist), LANTERN_ART, 0, "Let's go")
+		await card.closed
 	var dishes := SushiMeta.new_dishes(_level)
 	if _level == 1:
 		for type in dishes:
@@ -328,7 +349,7 @@ func _intro(level: SushiLevel) -> void:
 		card.call(&"show_dish", type)
 		await card.closed
 		SushiMeta.mark_dish_seen(type)
-	if dishes.is_empty() and ROLE_BONUS.has(level.role):
+	if not welcome and dishes.is_empty() and ROLE_BONUS.has(level.role):
 		_show_banner("Hard level" if level.role == "hard" else "Super hard level",
 				"Coins per star ×%s" % str(ROLE_BONUS[level.role]).trim_suffix(".0"))
 
@@ -356,12 +377,21 @@ func _show_banner(title_text: String, caption: String) -> void:
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(label)
 	holder.modulate.a = 0.0
+	_banner = holder
 	var tween := holder.create_tween()
 	tween.tween_property(holder, ^"modulate:a", 1.0, 0.25)
 	tween.tween_interval(1.6)
 	tween.tween_property(holder, ^"modulate:a", 0.0, 0.4)
 	tween.tween_callback(holder.queue_free)
 	SushiSfx.play(&"warn")
+
+
+## The banner makes way as soon as play starts (and for the doom card).
+func _hide_banner() -> void:
+	if _banner == null or not is_instance_valid(_banner):
+		return
+	_banner.queue_free()
+	_banner = null
 
 
 func _pause() -> void:
@@ -418,6 +448,7 @@ func _build_doom_card() -> void:
 func _show_doom_card() -> void:
 	if _finished:
 		return
+	_hide_banner()
 	_doom_card.show()
 	Juice.pop(_doom_card, 1.04, 0.16)
 
@@ -453,3 +484,10 @@ func _maybe_show_interstitial(won: bool) -> void:
 	if ad_policy.can_show_interstitial(_level, won, now) and Services.ads.is_interstitial_ready("results"):
 		Services.ads.show_interstitial("results")
 		ad_policy.record_interstitial_shown(now)
+		if Services.ads is MockAdsService:
+			UI.toast("Test build: a full-screen ad would show here", Icons.VIDEO, 1.5)
+
+
+func _on_outside_tap() -> void:
+	if _tip_once("tip_window"):
+		UI.toast("Only the plates in the gold window can be taken. Each take moves the belt one step.", Icons.INFO, 3.5)

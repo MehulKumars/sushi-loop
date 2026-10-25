@@ -22,7 +22,24 @@ puzzle for Android, built in **Godot 4.7.2** from
 2. Tap one. It slides into an open bento of its kind, or onto the **counter** if none matches.
 3. Every take moves the belt one step. A plate you leave rides on and comes back a lap later.
 4. Three of a kind close a bento. The next one opens, and matching counter plates hop straight in.
-5. If the counter is full and the plate fits nowhere, the level is lost.
+5. If the counter is full and the plate fits nowhere, the level is lost (a free video or 50 coins
+   buys two more counter slots; Retry is always free).
+
+Stars: three for a clean win that keeps the counter within the level's limit (the gold stars under
+the counter settings), two for a clean win, one after a continue.
+
+## What keeps you playing
+
+- **60 levels in six restaurants**, each with its own colours and a twist (a two-plate window, one
+  bento at a time, a hidden queue). Every chapter rises and falls: hard at 5, super hard at 9, rest
+  levels after; level select marks the spikes.
+- **New on the menu:** each of the seven dishes gets its own card when it first rides the belt.
+- **Coins** for stars (more on hard levels), a **gift** every 15 stars, a bonus per chapter. They
+  buy hints, undos and continues. No purchases.
+- **Forgiveness:** a free undo and hint per level, and a free step back whenever the solver proves
+  the level can no longer be won.
+- **Ads** are opt-in videos only (a continue, double coins, a hint or undo when short of coins),
+  plus a capped interstitial on win screens from level 8, never in the first session.
 
 ## Where things are
 
@@ -30,7 +47,9 @@ puzzle for Android, built in **Godot 4.7.2** from
 |---|---|
 | Rules model, solver, bots, run with undo, doom detector | `game/sushi/` |
 | Reusable kit: `StateSolver` (budgeted DFS), `Rack` (buffer slots with cascade), `PathBelt` (items stepping along a loop) | `game/kit/` |
-| Board, plates, bentos, counter and feel | `game/sushi/*_view.gd`, `game/sushi/sushi_art.gd` |
+| Board, plates, bentos, counter and feel | `game/sushi/*_view.gd`, `game/sushi/sushi_art.gd`, `game/sushi/sushi_palette.gd` |
+| Progression (chapters, new dishes, gifts) | `game/sushi/sushi_meta.gd` |
+| Art, sounds, music, app icon | `assets/` (sources and licences in `ASSETS_LICENSES.md`), `tools/make_icon.gd`, `tools/audio/` |
 | Baked levels | `data/levels/sushi_v1.json` |
 | Level plan, generator and rating reports | `tools/levelgen/` |
 | Game screen (HUD, boosters, results flow) | `ui/screens/game.gd` |
@@ -57,6 +76,7 @@ testing).
 
 ## Licences
 
-Code in `core/`, `game/`, `ui/`, `tests/` and `tools/` is ours. Fonts are SIL OFL 1.1, icons Apache
+Code in `core/`, `game/`, `ui/`, `tests/` and `tools/` is ours. Dish art is Microsoft Fluent Emoji (MIT),
+sounds are Kenney (CC0) plus our synthesised cues, music is CC0. Fonts are SIL OFL 1.1, icons Apache
 2.0; every third-party file is listed in [ASSETS_LICENSES.md](ASSETS_LICENSES.md). Maaack's MIT
 licence is kept in `LICENSE.txt` and `ATTRIBUTION.md`.

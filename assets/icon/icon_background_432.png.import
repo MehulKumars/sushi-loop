@@ -2,28 +2,28 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bghu0hamddqmn"
-path="res://.godot/imported/icon_main_192.png-7352ffbbff8b5113ba095da12f39e93c.ctex"
+uid="uid://d0bc3yftyw1jl"
+path="res://.godot/imported/icon_background_432.png-722686a1c33109bb329a92143237bc02.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/template_icon/icon_main_192.png"
-dest_files=["res://.godot/imported/icon_main_192.png-7352ffbbff8b5113ba095da12f39e93c.ctex"]
+source_file="res://assets/icon/icon_background_432.png"
+dest_files=["res://.godot/imported/icon_background_432.png-722686a1c33109bb329a92143237bc02.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=1
 compress/high_quality=false
-compress/lossy_quality=0.7
+compress/lossy_quality=0.85
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

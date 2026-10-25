@@ -30,13 +30,14 @@ func show_dish(type: int) -> void:
 	_celebrate(&"reveal")
 
 
-## A reward with a picture (gift, lantern) and `coins` added to the player's purse by the caller.
-func show_gift(title: String, heading: String, text: String, picture: Texture2D, coins: int = 0) -> void:
+## A card with a picture (gift, lantern): `coins` shows a reward the caller has already added;
+## `button` replaces the default button text.
+func show_gift(title: String, heading: String, text: String, picture: Texture2D, coins: int = 0, button: String = "") -> void:
 	%Title.text = title
 	%Name.text = heading
 	%Text.text = text
 	%Text.visible = not text.is_empty()
-	%OkButton.text = "Collect" if coins > 0 else "Nice!"
+	%OkButton.text = button if not button.is_empty() else ("Collect" if coins > 0 else "Nice!")
 	_showcase.plate_type = -1
 	_showcase.picture = picture
 	if coins > 0:
