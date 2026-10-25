@@ -61,6 +61,7 @@ var _belt_tween: Tween
 var _hint_tween: Tween
 var _hint_plate: int = -1
 var _guide_tween: Tween
+var _ripple_tween: Tween
 
 signal _landed
 
@@ -632,9 +633,13 @@ func _stop_hint() -> void:
 	if _hint_tween != null:
 		_hint_tween.kill()
 		_hint_tween = null
+	if _ripple_tween != null:
+		_ripple_tween.kill()
+		_ripple_tween = null
 	var view: SushiPlateView = _plates.get(_hint_plate)
 	if view != null:
 		view.glow = 0.0
+		view.ripple = 0.0
 	_hint_plate = -1
 
 
@@ -650,6 +655,11 @@ func _set_guide(on: bool) -> void:
 		var plate := run.state.window_plate(w)
 		if plate >= 0 and run.state.fits(run.state.plate_type(plate)):
 			_show_hint(plate)
+			var view: SushiPlateView = _plates.get(plate)
+			if view != null and Juice.motion_scale > 0.0:
+				_ripple_tween = view.create_tween().set_loops()
+				_ripple_tween.tween_property(view, ^"ripple", 1.0, 0.9).from(0.0).set_ease(Tween.EASE_OUT)
+				_ripple_tween.tween_interval(0.3)
 			break
 	_guide_tween = create_tween().set_loops()
 	_guide_tween.tween_property(_belt, ^"window_glow", 1.0, 0.6).set_trans(Tween.TRANS_SINE)

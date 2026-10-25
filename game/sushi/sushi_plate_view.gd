@@ -20,6 +20,11 @@ var warn: float = 0.0:
 	set(value):
 		warn = value
 		queue_redraw()
+## 0-1: a tap ripple spreading out from the plate (the tutorial's "take this one").
+var ripple: float = 0.0:
+	set(value):
+		ripple = value
+		queue_redraw()
 ## A soft shadow under the plate (on the wooden counter; the belt is too dark to need one).
 var shadow: bool = false:
 	set(value):
@@ -36,3 +41,5 @@ func _draw() -> void:
 	SushiArt.draw_plate(self, Vector2.ZERO, radius, type)
 	if warn > 0.0:
 		draw_arc(Vector2.ZERO, radius * 1.1, 0.0, TAU, 48, Color(SushiPalette.VERMILLION, warn), 6.0, true)
+	if ripple > 0.0:
+		draw_arc(Vector2.ZERO, radius * (1.1 + 0.7 * ripple), 0.0, TAU, 48, Color(SushiPalette.GOLD, 1.0 - ripple), 5.0, true)

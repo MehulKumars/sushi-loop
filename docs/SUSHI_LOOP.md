@@ -149,6 +149,19 @@ Haptics: 12 ms on a take, 30 ms when a bento closes, 60 ms on a win (Settings to
 Vermillion and blue are close in greyscale, so the silhouette is the identity and rims also differ
 by pattern (solid, dashed, double).
 
+## v1 (free, like Halves)
+
+No shop, purchases, daily reward or ranks. Coins (10 per star) are the booster currency:
+
+| Booster | Free per level | Then |
+|---|---|---|
+| Undo (R9) | 1 | 30 coins |
+| Hint (the solver's next move) | 1 | 30 coins |
+| Continue after a loss (R8: +2 counter slots) | - | 50 coins (Retry is always free) |
+| Step back after a doom proof | always free | - |
+
+Levels 1-2 guide the first take: the window frame breathes and the plate that fits glows with a tap ripple.
+
 ## Ads (when ads are switched on)
 
 Rewarded: continue (+2 counter slots). Interstitials: none in the first session or before level 8,
