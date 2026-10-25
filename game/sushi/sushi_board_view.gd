@@ -1,19 +1,27 @@
 class_name SushiBoardView
 extends Control
 ## The Sushi Loop board (docs/SUSHI_LOOP.md): the belt loop with its gold pick window, the open
-## bentos and the queue preview inside the loop, and the counter just above the window. Plays a
-## SushiRun: a tap in the window takes a plate and the model's events play back as short
-## animations (a tap made meanwhile is kept and played next, faster). The doom detector searches
-## in slices between takes. The game screen calls play(), undo(), rewind(), continue_game(), hint().
+## bentos and the queue preview inside the loop, and the counter's serving board just above the
+## window. Plays a SushiRun: a tap in the window takes a plate and the model's events play back as
+## short animations (a tap made meanwhile is kept and played next, faster). The doom detector
+## searches in slices between takes. The game screen calls play(), undo(), rewind(),
+## continue_game(), hint(); sets `chapter` (the restaurant's colours) and `collect_point` (where
+## packed bentos fly to). Effects never hold the board busy: only the model's events do.
 
 signal changed
 signal took
 signal bento_closed
+## A packed bento reached `collect_point` (the HUD's progress bar).
+signal bento_collected
 signal won
 signal lost
 signal doomed
 ## The counter has one free slot left (0 = full).
 signal counter_low(room: int)
+## A plate went to the counter (the game screen explains the counter the first time).
+signal counter_used
+## `count` bentos closed from a single take (2 = a double).
+signal combo(count: int)
 
 const BAND: float = 100.0
 const CORNER: float = 118.0
@@ -24,21 +32,36 @@ const COUNTER_RADIUS: float = 31.0
 const PREVIEW_SCALE: float = 0.4
 const PLANK_HEIGHT: float = 84.0
 const STEP_TIME: float = 0.14
-const FLY_TIME: float = 0.2
+const FLY_TIME: float = 0.22
 const HOP_GAP: float = 0.08
 ## A tap counts within this many plate radii of a window position.
 const TAP_SLACK: float = 1.3
 ## Animation speed while a tap is waiting.
 const HURRY: float = 2.2
+const SAKURA := preload("res://assets/deco/sakura.png")
+const SPARKLES := preload("res://assets/deco/sparkles.png")
 
 var run: SushiRun
 ## Pulse the plate to take until the first take (the tutorial levels).
 var guide: bool = false
+## 1-based chapter: picks the restaurant's belt and wood colours (SushiPalette.shop()).
+var chapter: int = 1:
+	set(value):
+		chapter = value
+		_apply_shop()
+## Where packed bentos fly to, in canvas coordinates (Vector2.INF: they rise and fade instead).
+var collect_point := Vector2.INF
 
 var _belt := PathBelt.new()
 var _bento_layer := Node2D.new()
 var _plate_layer := Node2D.new()
-var _grains := CPUParticles2D.new()
+var _fx_layer := Node2D.new()
+var _petals: Array[CPUParticles2D] = []
+var _sparks: Array[CPUParticles2D] = []
+var _next_petals: int = 0
+var _next_sparks: int = 0
+var _shower: CPUParticles2D
+var _shop: Dictionary = SushiPalette.shop(1)
 var _plates: Dictionary[int, SushiPlateView] = {}
 var _flying: Dictionary[int, bool] = {}
 var _bentos: Array[SushiBentoView] = []
@@ -50,6 +73,7 @@ var _pending: int = -1
 var _speed: float = 1.0
 var _took_any: bool = false
 var _active_flights: int = 0
+var _closes: int = 0
 var _interior := Rect2()
 var _counter_rect := Rect2()
 var _bento_points: Array[Vector2] = []
@@ -68,25 +92,26 @@ signal _landed
 
 func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_belt.band_color = SushiPalette.INK
+	# The dishes are drawn at many sizes (window, belt, counter, bento cells, previews).
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	_belt.window_color = SushiPalette.GOLD
 	add_child(_belt)
 	add_child(_bento_layer)
 	add_child(_plate_layer)
-	_grains.emitting = false
-	_grains.one_shot = true
-	_grains.amount = 20
-	_grains.lifetime = 0.7
-	_grains.explosiveness = 0.95
-	_grains.direction = Vector2.UP
-	_grains.spread = 75.0
-	_grains.initial_velocity_min = 150.0
-	_grains.initial_velocity_max = 280.0
-	_grains.gravity = Vector2(0, 700)
-	_grains.scale_amount_min = 3.0
-	_grains.scale_amount_max = 5.0
-	_grains.color = SushiPalette.RICE
-	_plate_layer.add_child(_grains)
+	add_child(_fx_layer)
+	for i in 3:
+		_petals.append(_burst(SAKURA, 14, 0.08, 0.13, 1.1))
+	for i in 4:
+		_sparks.append(_burst(SPARKLES, 3, 0.09, 0.14, 0.45))
+	_shower = _burst(SAKURA, 36, 0.08, 0.14, 3.2)
+	_shower.explosiveness = 0.15
+	_shower.direction = Vector2.DOWN
+	_shower.spread = 25.0
+	_shower.initial_velocity_min = 60.0
+	_shower.initial_velocity_max = 130.0
+	_shower.gravity = Vector2(0, 50)
+	_shower.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	_apply_shop()
 
 
 func _notification(what: int) -> void:
@@ -150,6 +175,16 @@ func hint() -> bool:
 		return false
 	_show_hint(run.state.window_plate(w))
 	return true
+
+
+## The stars this attempt is on course for: 3 while the counter stays within the level's star
+## peak, 2 once it went over, 1 after a continue.
+func star_outlook() -> int:
+	if run == null:
+		return 3
+	if run.continues > 0:
+		return 1
+	return 3 if run.state.peak <= run.level.star_peak else 2
 
 
 ## What a tap on window position `w` does (also used by tests and the playtest tool).
@@ -222,6 +257,7 @@ func _take(w: int) -> void:
 
 func _playback(events: Array[Dictionary]) -> void:
 	_busy = true
+	_closes = 0
 	if events.any(func(e: Dictionary) -> bool: return e.kind == &"advance"):
 		_step_belt()
 	var hop := 0
@@ -231,7 +267,7 @@ func _playback(events: Array[Dictionary]) -> void:
 				_lift(int(e.plate))
 			&"pack":
 				if e.from == &"counter":
-					# The relief cascade: each hop a semitone higher.
+					# The relief cascade: each hop a step higher on the pentatonic ladder.
 					SushiSfx.play(&"hop", hop)
 					hop += 1
 					_pack(int(e.plate), int(e.slot), int(e.cell), false)
@@ -239,6 +275,7 @@ func _playback(events: Array[Dictionary]) -> void:
 				else:
 					await _pack(int(e.plate), int(e.slot), int(e.cell))
 			&"counter":
+				counter_used.emit()
 				await _to_counter(int(e.plate), int(e.index))
 			&"close":
 				await _close(int(e.slot))
@@ -251,6 +288,8 @@ func _playback(events: Array[Dictionary]) -> void:
 		await _belt_tween.finished
 	_arrange_counter()
 	_show_previews(run.state.next_bento)
+	if _closes >= 2:
+		_show_combo(_closes)
 	_busy = false
 	_settle()
 
@@ -279,6 +318,13 @@ func _settle() -> void:
 
 
 # --- building and layout ---
+
+func _apply_shop() -> void:
+	_shop = SushiPalette.shop(chapter)
+	_belt.band_color = _shop.belt
+	_belt.rail_color = _shop.rail
+	queue_redraw()
+
 
 func _rebuild() -> void:
 	_stop_hint()
@@ -371,6 +417,8 @@ func _layout() -> void:
 	var held: SushiPlateView = _plates.get(state.held)
 	if held != null:
 		held.position = _held_point()
+	_shower.position = Vector2(_interior.get_center().x, outer.position.y + 20.0)
+	_shower.emission_rect_extents = Vector2(_interior.size.x * 0.5, 12.0)
 	queue_redraw()
 
 
@@ -391,7 +439,7 @@ func _window_scale(ring: float) -> float:
 	var n := float(run.state.belt_size())
 	var d := fposmod(ring + n * 0.5, n) - n * 0.5
 	var outside := maxf(-0.5 - d, d - (float(run.state.window) - 0.5))
-	return lerpf(WINDOW_SCALE, 1.0, clampf(outside / 0.6 + 0.0, 0.0, 1.0)) if outside > 0.0 else WINDOW_SCALE
+	return lerpf(WINDOW_SCALE, 1.0, clampf(outside / 0.6, 0.0, 1.0)) if outside > 0.0 else WINDOW_SCALE
 
 
 func _counter_point(index: int) -> Vector2:
@@ -448,6 +496,7 @@ func _show_previews(first: int) -> void:
 		if i < _preview_points.size():
 			_previews[i].position = _preview_points[i]
 			_previews[i].scale = Vector2.ONE * PREVIEW_SCALE * _bento_scale
+	queue_redraw()
 
 
 # --- animations ---
@@ -469,18 +518,23 @@ func _set_shown_offset(value: float) -> void:
 	_place_belt_plates()
 
 
+## The taken plate squashes as the finger lifts it, then rises off the belt.
 func _lift(plate: int) -> void:
 	var view: SushiPlateView = _plates.get(plate)
 	if view == null:
 		return
 	_flying[plate] = true
 	view.z_index = 3
+	var rest := view.scale
+	var motion := Juice.motion_scale
 	var tween := view.create_tween()
-	tween.tween_property(view, ^"scale", view.scale * 1.08, 0.05 / _speed)
+	tween.tween_property(view, ^"scale", rest * Vector2(1.0 + 0.14 * motion, 1.0 - 0.12 * motion), 0.05 / _speed)
+	tween.parallel().tween_property(view, ^"lift", 1.0, 0.08 / _speed)
+	tween.tween_property(view, ^"scale", rest * 1.08, 0.06 / _speed)
 
 
-## Flies `plate` along an arc into cell `cell` of open slot `slot`; the cell fills on landing
-## (with a porcelain clink, unless the cascade's rising hops are playing instead).
+## Flies `plate` along an arc into cell `cell` of open slot `slot`; the cell fills and pops on
+## landing, with a porcelain clink and a few sparkles (unless the cascade's hops are playing).
 func _pack(plate: int, slot: int, cell: int, clink: bool = true) -> void:
 	var view: SushiPlateView = _plates.get(plate)
 	if view == null:
@@ -490,9 +544,11 @@ func _pack(plate: int, slot: int, cell: int, clink: bool = true) -> void:
 	var type := view.type
 	await _fly(view, target, 0.66 * _bento_scale)
 	bento.set_cell(cell, type)
+	bento.pop_cell(cell)
 	_plates.erase(plate)
 	_flying.erase(plate)
 	view.queue_free()
+	_spark_at(target)
 	if clink:
 		SushiSfx.play(&"clink")
 
@@ -502,26 +558,38 @@ func _to_counter(plate: int, index: int) -> void:
 	if view == null:
 		return
 	view.warn = 0.0
-	await _fly(view, _counter_point(index), _counter_radius() / PLATE_RADIUS)
+	var end_scale := _counter_radius() / PLATE_RADIUS
+	await _fly(view, _counter_point(index), end_scale)
 	_flying.erase(plate)
 	view.shadow = true
+	view.lift = 0.0
 	view.z_index = 0
 	SushiSfx.play(&"counter")
+	if Juice.motion_scale > 0.0:
+		var rest := Vector2.ONE * end_scale
+		var tween := view.create_tween()
+		tween.tween_property(view, ^"scale", rest * Vector2(1.12, 0.86), 0.05)
+		tween.tween_property(view, ^"scale", rest, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## A plate's arc through the air: up and over, turning a little, shrinking or growing to fit.
 func _fly(view: SushiPlateView, target: Vector2, end_scale: float) -> void:
 	_active_flights += 1
 	var start := view.position
 	var start_scale := view.scale.x
-	var lift := Vector2(0.0, -minf(120.0, start.distance_to(target) * 0.35))
+	var lift := Vector2(0.0, -minf(130.0, start.distance_to(target) * 0.38))
 	var control := (start + target) * 0.5 + lift
+	var turn := signf(target.x - start.x) * 0.35 * Juice.motion_scale
 	view.z_index = 3
+	view.lift = 1.0
 	var tween := view.create_tween()
 	tween.tween_method(func(t: float) -> void:
 		view.position = start.lerp(control, t).lerp(control.lerp(target, t), t)
-		view.scale = Vector2.ONE * lerpf(start_scale, end_scale, t),
+		view.scale = Vector2.ONE * lerpf(start_scale, end_scale, t)
+		view.rotation = sin(t * PI) * turn,
 		0.0, 1.0, FLY_TIME / _speed).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
+	view.rotation = 0.0
 	_active_flights -= 1
 	_landed.emit()
 
@@ -531,22 +599,47 @@ func _await_flights() -> void:
 		await _landed
 
 
+## The lid, the cord, a puff of sakura petals; then a copy of the packed bento flies to the HUD
+## (on its own, so the next bento can already slide into this slot).
 func _close(slot: int) -> void:
 	await _await_flights()
 	var bento := _bentos[slot]
-	await bento.close(_speed)
+	await bento.close(_speed, _closes)
+	_closes += 1
 	Haptics.pulse(30, 0.6)
-	if Juice.motion_scale > 0.0:
-		_grains.amount = maxi(4, int(20.0 * Juice.motion_scale))
-		_grains.color = SushiPalette.RICE
-		_grains.position = bento.position
-		_grains.restart()
+	_petals_at(bento.position)
 	bento_closed.emit()
-	var tween := bento.create_tween().set_parallel()
-	tween.tween_property(bento, ^"position:y", bento.position.y - 36.0, 0.2 / _speed)
-	tween.tween_property(bento, ^"modulate:a", 0.0, 0.2 / _speed)
-	await tween.finished
+	var copy := SushiBentoView.new()
+	copy.want = bento.want
+	copy.cells = bento.cells.duplicate()
+	copy.lid = 1.0
+	copy.ribbon = 1.0
+	copy.position = bento.position
+	copy.scale = bento.scale
+	copy.z_index = 4
+	_fx_layer.add_child(copy)
 	bento.visible = false
+	_collect(copy)
+
+
+func _collect(copy: SushiBentoView) -> void:
+	var tween := copy.create_tween()
+	if collect_point.is_finite() and Juice.motion_scale > 0.0:
+		var target := get_global_transform_with_canvas().affine_inverse() * collect_point
+		var start := copy.position
+		var control := Vector2(lerpf(start.x, target.x, 0.3), minf(start.y, target.y) - 60.0)
+		var from_scale := copy.scale.x
+		tween.tween_method(func(t: float) -> void:
+			copy.position = start.lerp(control, t).lerp(control.lerp(target, t), t)
+			copy.scale = Vector2.ONE * lerpf(from_scale, from_scale * 0.22, t * t),
+			0.0, 1.0, 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	else:
+		tween.set_parallel()
+		tween.tween_property(copy, ^"position:y", copy.position.y - 36.0, 0.2)
+		tween.tween_property(copy, ^"modulate:a", 0.0, 0.2)
+	tween.chain().tween_callback(func() -> void:
+		copy.queue_free()
+		bento_collected.emit())
 
 
 ## The next bento slides down from the queue preview into `slot`.
@@ -563,8 +656,8 @@ func _open(slot: int, index: int) -> void:
 	bento.scale = Vector2.ONE * PREVIEW_SCALE * _bento_scale
 	_show_previews(index + 1)
 	var tween := bento.create_tween().set_parallel()
-	tween.tween_property(bento, ^"position", _bento_points[slot], 0.18 / _speed).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_property(bento, ^"scale", Vector2.ONE * _bento_scale, 0.18 / _speed)
+	tween.tween_property(bento, ^"position", _bento_points[slot], 0.2 / _speed).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(bento, ^"scale", Vector2.ONE * _bento_scale, 0.2 / _speed)
 	await tween.finished
 
 
@@ -574,6 +667,7 @@ func _overflow(plate: int) -> void:
 		return
 	view.warn = 1.0
 	_fly(view, _held_point(), 0.9)
+	Haptics.pulse(80, 0.7)
 	if Juice.motion_scale > 0.0:
 		for item in run.state.counter.items:
 			var counter_plate: SushiPlateView = _plates.get(item)
@@ -581,20 +675,47 @@ func _overflow(plate: int) -> void:
 				continue
 			var x := counter_plate.position.x
 			var nudge := counter_plate.create_tween()
-			nudge.tween_property(counter_plate, ^"position:x", x + 3.0, 0.05)
-			nudge.tween_property(counter_plate, ^"position:x", x - 3.0, 0.08)
+			nudge.tween_property(counter_plate, ^"position:x", x + 4.0, 0.05)
+			nudge.tween_property(counter_plate, ^"position:x", x - 4.0, 0.08)
 			nudge.tween_property(counter_plate, ^"position:x", x, 0.05)
 
 
+## The last bento is packed: sakura petals drift down over the counter.
 func _celebrate() -> void:
 	Haptics.pulse(60, 0.8)
+	SushiSfx.duck(2.2)
 	SushiSfx.play(&"win")
 	if Juice.motion_scale <= 0.0:
 		return
-	_grains.amount = maxi(8, int(36.0 * Juice.motion_scale))
-	_grains.color = SushiPalette.GOLD
-	_grains.position = _interior.get_center()
-	_grains.restart()
+	_shower.amount = maxi(10, int(36.0 * Juice.motion_scale))
+	_shower.restart()
+
+
+## "Double!" over the bentos when one take closes several (a planned cascade).
+func _show_combo(count: int) -> void:
+	combo.emit(count)
+	var label := Label.new()
+	label.text = ["", "", "Double!", "Triple!"][count] if count <= 3 else "Combo ×%d!" % count
+	label.theme_type_variation = &"HeaderLabel"
+	label.add_theme_color_override(&"font_color", SushiPalette.GOLD)
+	label.add_theme_color_override(&"font_outline_color", SushiPalette.INK)
+	label.add_theme_constant_override(&"outline_size", 12)
+	label.add_theme_font_size_override(&"font_size", 56)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	add_child(label)
+	label.reset_size()
+	var center := Vector2(_interior.get_center().x, _bento_points[0].y if not _bento_points.is_empty() else _interior.get_center().y)
+	label.position = center - label.size * 0.5
+	label.pivot_offset = label.size * 0.5
+	var motion := Juice.motion_scale
+	label.scale = Vector2.ONE * (0.6 if motion > 0.0 else 1.0)
+	var tween := label.create_tween()
+	tween.tween_property(label, ^"scale", Vector2.ONE, 0.3 * motion + 0.01).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(label, ^"position:y", label.position.y - 40.0 * motion, 0.9)
+	tween.tween_property(label, ^"modulate:a", 0.0, 0.35)
+	tween.tween_callback(label.queue_free)
+	Haptics.pulse(40, 0.7)
 
 
 func _update_counter_warning() -> void:
@@ -670,20 +791,87 @@ func _wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds / _speed, true, false, true).timeout
 
 
+# --- particles (pooled one-shots; off with Reduce Motion) ---
+
+func _burst(texture: Texture2D, amount: int, scale_min: float, scale_max: float, life: float) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.emitting = false
+	p.one_shot = true
+	p.amount = amount
+	p.lifetime = life
+	p.explosiveness = 0.95
+	p.texture = texture
+	p.direction = Vector2.UP
+	p.spread = 80.0
+	p.initial_velocity_min = 140.0
+	p.initial_velocity_max = 290.0
+	p.gravity = Vector2(0, 420)
+	p.damping_min = 40.0
+	p.damping_max = 80.0
+	p.angle_min = 0.0
+	p.angle_max = 360.0
+	p.angular_velocity_min = -200.0
+	p.angular_velocity_max = 200.0
+	p.scale_amount_min = scale_min
+	p.scale_amount_max = scale_max
+	var fade := Gradient.new()
+	fade.set_color(0, Color(1, 1, 1, 1))
+	fade.set_color(1, Color(1, 1, 1, 0))
+	fade.add_point(0.7, Color(1, 1, 1, 0.9))
+	p.color_ramp = fade
+	p.z_index = 5
+	_fx_layer.add_child(p)
+	return p
+
+
+func _petals_at(point: Vector2) -> void:
+	if Juice.motion_scale <= 0.0:
+		return
+	var p := _petals[_next_petals]
+	_next_petals = (_next_petals + 1) % _petals.size()
+	p.amount = maxi(4, int(14.0 * Juice.motion_scale))
+	p.position = point
+	p.restart()
+
+
+func _spark_at(point: Vector2) -> void:
+	if Juice.motion_scale <= 0.0:
+		return
+	var p := _sparks[_next_sparks]
+	_next_sparks = (_next_sparks + 1) % _sparks.size()
+	p.position = point
+	p.initial_velocity_min = 40.0
+	p.initial_velocity_max = 90.0
+	p.gravity = Vector2.ZERO
+	p.spread = 180.0
+	p.restart()
+
+
 func _draw() -> void:
 	if run == null or _belt.rect.size == Vector2.ZERO:
 		return
-	# The wooden sushi counter inside the loop, and the plank the counter plates wait on.
+	# The wooden sushi counter inside the loop, and the serving board the counter plates wait on.
 	var wood := _belt.rect.grow(-BAND * 0.5 + 1.0)
-	SushiArt.draw_panel(self, wood, maxf(CORNER - BAND * 0.5, 12.0), SushiPalette.WOOD, SushiPalette.WOOD_EDGE)
-	var grain := Color(SushiPalette.WOOD_EDGE, 0.35)
-	var y := wood.position.y + 28.0
-	while y < wood.end.y - 20.0:
-		draw_line(Vector2(wood.position.x + 24.0, y), Vector2(wood.end.x - 24.0, y), grain, 1.5)
-		y += 46.0
-	SushiArt.draw_panel(self, _counter_rect, _counter_rect.size.y * 0.3, SushiPalette.CREAM, SushiPalette.WOOD_EDGE)
+	SushiArt.draw_counter_wood(self, wood, maxf(CORNER - BAND * 0.5, 12.0), _shop.wood, _shop.grain)
 	var state := run.state
-	var full := state.counter.room() <= 0
-	var ring := SushiPalette.VERMILLION if full else SushiPalette.WOOD_EDGE.lerp(SushiPalette.VERMILLION, _counter_glow)
+	var slots: Array[Vector2] = []
 	for i in state.counter.capacity:
-		draw_arc(_counter_point(i), _counter_radius() * 1.08, 0.0, TAU, 32, ring, 3.0 + 2.0 * _counter_glow, true)
+		slots.append(_counter_point(i))
+	SushiArt.draw_serving_board(self, _counter_rect, slots, _counter_radius(), _counter_glow,
+			state.counter.room() <= 0, _shop.wood, _shop.grain)
+	# A small gold star under the slots the counter may fill and still earn three stars.
+	if state.counter.capacity > run.level.star_peak:
+		for i in mini(run.level.star_peak, slots.size()):
+			_draw_star(slots[i] + Vector2(0, _counter_radius() * 1.1 + 9.0), 7.0, SushiPalette.GOLD.darkened(0.1))
+	if not _previews.is_empty() and not _preview_points.is_empty():
+		var font := get_theme_default_font()
+		var left := _preview_points[0] - Vector2(SushiBentoView.SIZE.x * PREVIEW_SCALE * _bento_scale * 0.5 + 12.0, -8.0)
+		draw_string(font, left - Vector2(80, 0), "NEXT", HORIZONTAL_ALIGNMENT_RIGHT, 80, 20, Color(_shop.grain.darkened(0.45), 0.9))
+
+
+func _draw_star(c: Vector2, r: float, color: Color) -> void:
+	var points := PackedVector2Array()
+	for i in 10:
+		var a := -PI * 0.5 + TAU * float(i) / 10.0
+		points.append(c + Vector2(cos(a), sin(a)) * (r if i % 2 == 0 else r * 0.45))
+	draw_colored_polygon(points, color)

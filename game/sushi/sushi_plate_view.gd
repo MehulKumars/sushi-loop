@@ -1,7 +1,8 @@
 class_name SushiPlateView
 extends Node2D
 ## One plate for the board view: on the belt, on the counter or in flight. Draws itself with
-## SushiArt; `glow` is the gold hint/guide ring, `warn` the vermillion ring of an overflowed plate.
+## SushiArt; `glow` is the gold hint/guide ring, `warn` the vermillion ring of an overflowed plate,
+## `lift` (0-1) drops its shadow away while it is in the air.
 
 var plate: int = -1
 var type: int = 0:
@@ -30,14 +31,20 @@ var shadow: bool = false:
 	set(value):
 		shadow = value
 		queue_redraw()
+## 0 resting, 1 in the air: the shadow falls further and fades.
+var lift: float = 0.0:
+	set(value):
+		lift = value
+		queue_redraw()
 
 
 func _draw() -> void:
 	if glow > 0.0:
-		draw_circle(Vector2.ZERO, radius * (1.14 + 0.08 * glow), Color(SushiPalette.GOLD, 0.45 * glow))
+		draw_circle(Vector2.ZERO, radius * (1.16 + 0.08 * glow), Color(SushiPalette.GOLD, 0.4 * glow))
 		draw_arc(Vector2.ZERO, radius * 1.1, 0.0, TAU, 48, Color(SushiPalette.GOLD, glow), 5.0, true)
-	if shadow:
-		draw_circle(Vector2(0, radius * 0.1), radius * 1.02, Color(SushiPalette.INK, 0.18))
+	if shadow or lift > 0.0:
+		var drop := radius * (0.1 + 0.35 * lift)
+		draw_circle(Vector2(drop * 0.3, drop), radius * (1.0 - 0.08 * lift), Color(SushiPalette.INK, 0.2 * (1.0 - 0.4 * lift)))
 	SushiArt.draw_plate(self, Vector2.ZERO, radius, type)
 	if warn > 0.0:
 		draw_arc(Vector2.ZERO, radius * 1.1, 0.0, TAU, 48, Color(SushiPalette.VERMILLION, warn), 6.0, true)

@@ -1,6 +1,7 @@
 extends Screen
 ## First screen after launch: the game's name on the style's background for about a second,
-## then the main menu (tap to skip). Put your studio logo in %Logo if you have one.
+## then the main menu (tap to skip). Counts the session and starts the music.
+## Put your studio logo in %Logo if you have one.
 ## Android shows the app icon on its own launch splash just before this (export preset >
 ## splash_screen/icon), so the two together read as one short, branded start.
 
@@ -11,6 +12,9 @@ var _leaving: bool = false
 
 func _ready() -> void:
 	%Title.text = ProjectSettings.get_setting("application/config/name", "Mobile Game")
+	# One launch = one session (AdPolicy keeps the first session free of interstitials).
+	Progress.set_count("sessions", Progress.count("sessions") + 1)
+	SushiSfx.music()
 	var timer := Timer.new()
 	timer.one_shot = true
 	timer.wait_time = HOLD_SECONDS

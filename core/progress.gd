@@ -1,7 +1,7 @@
 class_name Progress
 extends RefCounted
-## Player progress used by the template screens: best stars per level, coins, purchases and the
-## daily reward streak. Stored in the versioned JSON save (SaveStore) and written on every
+## Player progress used by the template screens: best stars per level, coins, purchases, the
+## daily reward streak and named counts. Stored in the versioned JSON save (SaveStore) and written on every
 ## change, so nothing is lost if Android kills the app. Swap or extend it per game.
 ## Tests point `path` at a temporary file.
 
@@ -75,6 +75,16 @@ static func spend_coins(amount: int) -> bool:
 		return false
 	add_coins(-amount)
 	return true
+
+
+## A small named count the game keeps (app sessions, gifts opened, tips shown...). 0 if unset.
+static func count(key: String) -> int:
+	return int(_section("counts").get(key, 0))
+
+
+static func set_count(key: String, value: int) -> void:
+	_section("counts")[key] = value
+	_save()
 
 
 static func owns(item: String) -> bool:

@@ -15,7 +15,7 @@ const SETTLE_FRAMES: int = 40
 const SIZE_PRESETS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280), Vector2i(1080, 1280)]
 const SCREENS: PackedStringArray = [
 	"splash", "main_menu", "level_select", "game", "pause", "results_win", "results_lose", "settings",
-	"confirm", "credits", "gallery",
+	"confirm", "credits", "gallery", "dish", "gift",
 ]
 
 var _sizes: Array[Vector2i] = []
@@ -76,6 +76,8 @@ func _demo_progress() -> void:
 		Progress.record_win(i + 1, earned[i])
 	var now := Time.get_unix_time_from_system()
 	Progress.claim_daily(Time.get_date_string_from_unix_time(int(now) - 2 * 86400))
+	# Every dish introduced already, so its card does not open over the game screen shots.
+	Progress.set_count("dishes", (1 << SushiLevel.TYPE_COUNT) - 1)
 	Progress.claim_daily(Time.get_date_string_from_unix_time(int(now) - 86400))
 	Progress.add_coins(1250 - Progress.coins())
 
@@ -180,7 +182,7 @@ func _show_results_win() -> bool:
 	var popup := _popup(Screens.RESULTS)
 	if popup == null:
 		return false
-	popup.call(&"show_win", 3, 2, 50)
+	popup.call(&"show_win", 3, 2, 50, true)
 	await _frames(120)
 	return true
 
@@ -191,7 +193,7 @@ func _show_results_lose() -> bool:
 	var popup := _popup(Screens.RESULTS)
 	if popup == null:
 		return false
-	popup.call(&"show_lose", 3, 50, true)
+	popup.call(&"show_lose", 3, 50, true, true)
 	return true
 
 
@@ -236,3 +238,25 @@ func _contact_sheet(shots: Array[Image]) -> Image:
 		var at := Vector2i(GAP + (i % COLUMNS) * (cell.x + GAP), GAP + (i / COLUMNS) * (cell.y + GAP))
 		sheet.blit_rect(small, Rect2i(Vector2i.ZERO, cell), at)
 	return sheet
+
+
+func _show_dish() -> bool:
+	if not await _show_game():
+		return false
+	var popup := _popup(Screens.REWARD)
+	if popup == null:
+		return false
+	popup.call(&"show_dish", 2)
+	return true
+
+
+func _show_gift() -> bool:
+	if not await _show_game():
+		return false
+	var popup := _popup(Screens.REWARD)
+	if popup == null:
+		return false
+	popup.call(&"show_gift", "A gift from the chef", "15 stars collected", "Coins for hints, undos and continues.",
+			load("res://assets/deco/gift.png"), 100)
+	await _frames(90)
+	return true

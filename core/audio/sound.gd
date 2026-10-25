@@ -2,17 +2,20 @@ extends Node
 ## Autoload Sound: named one-shot effects from a pool of players (pitch variation, semitone steps
 ## for combos), a click on every button press, and music playlists handed to ProjectMusicController
 ## so it crossfades between tracks and keeps playing across scenes (songs in turn, or rotating
-## loops). Volumes are the Settings buses.
+## loops). Volumes are the Settings buses. An effect is `id.wav`, or recorded variants
+## `id_1.wav`, `id_2.wav` ... of which each play picks one (no machine-gun repeats).
 
 const SFX_PATH: String = "res://assets/audio/sfx/%s.wav"
+const MAX_VARIANTS: int = 9
 const POOL_SIZE: int = 12
 const MUSIC_FADE: float = 1.2
 ## Sounds that carry a meaning players learn (confirm tones, the combo ladder) keep their pitch.
-const STEADY: Array[StringName] = [&"tick", &"click", &"chime", &"hop", &"warn", &"fail", &"win"]
+const STEADY: Array[StringName] = [&"tick", &"click", &"chime", &"hop", &"warn", &"fail", &"win", &"star", &"reveal"]
 
 var _players: Array[AudioStreamPlayer] = []
 var _next: int = 0
-var _streams: Dictionary[StringName, AudioStream] = {}
+var _streams: Dictionary[StringName, Array] = {}
+var _last_variant: Dictionary[StringName, int] = {}
 var _playlist := PackedStringArray()
 var _loops: bool = false
 var _rotate_seconds: float = 0.0
@@ -114,7 +117,7 @@ func _next_track(list: PackedStringArray = PackedStringArray()) -> void:
 ## Lowers the music for a moment so a fanfare reads clearly, then brings it back.
 func duck(seconds: float = 1.4, depth_db: float = -8.0) -> void:
 	var music := _music_controller()
-	if music == null:
+	if music == null or _playlist.is_empty() or music.get(&"music_stream_player") == null:
 		return
 	music.call(&"blend_to", depth_db, 0.15)
 	await get_tree().create_timer(seconds).timeout
@@ -129,13 +132,27 @@ func _exit_tree() -> void:
 		music.set(&"music_stream_player", null)
 
 
+## One of the effect's variants, never the same one twice in a row.
 func _stream(id: StringName) -> AudioStream:
-	if _streams.has(id):
-		return _streams[id]
-	var path := SFX_PATH % id
-	var stream: AudioStream = load(path) if ResourceLoader.exists(path) else null
-	_streams[id] = stream
-	return stream
+	if not _streams.has(id):
+		var found: Array[AudioStream] = []
+		var path := SFX_PATH % id
+		if ResourceLoader.exists(path):
+			found.append(load(path))
+		for i in range(1, MAX_VARIANTS + 1):
+			path = SFX_PATH % ("%s_%d" % [id, i])
+			if not ResourceLoader.exists(path):
+				break
+			found.append(load(path))
+		_streams[id] = found
+	var streams: Array = _streams[id]
+	if streams.is_empty():
+		return null
+	var pick := _rng.randi_range(0, streams.size() - 1)
+	if streams.size() > 1 and pick == _last_variant.get(id, -1):
+		pick = (pick + 1) % streams.size()
+	_last_variant[id] = pick
+	return streams[pick]
 
 
 func _music_controller() -> Node:

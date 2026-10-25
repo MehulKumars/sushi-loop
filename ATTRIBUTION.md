@@ -2,7 +2,21 @@
 
 ## Sushi Loop
 A game by Mehul Kumar  
-Plates, sushi and bentos drawn in code from the Sushi Loop palette  
+Plates, bentos, belt and counter drawn in code  
+
+## Art
+#### Fluent Emoji
+Dishes, lantern, gift, sakura and sparkles by Microsoft  
+MIT License  
+
+## Sound and music
+#### First Light Particles
+Music by Yoiyami  
+CC0  
+
+#### Kenney
+Plate, wood, chip and coin sounds from kenney.nl  
+CC0  
 
 ## Made with
 #### Godot Engine

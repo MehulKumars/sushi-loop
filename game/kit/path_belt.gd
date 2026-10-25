@@ -18,8 +18,16 @@ var window: int = 3
 var band_width: float = 104.0
 ## Distance between window slots (shrunk if the bottom straight is too short for it).
 var window_spacing: float = 112.0
-var band_color := Color("23283B")
-var slat_color := Color(1, 1, 1, 0.07)
+var band_color := Color("23283B"):
+	set(value):
+		band_color = value
+		queue_redraw()
+## The steel rails on both edges of the band.
+var rail_color := Color("C7CED8"):
+	set(value):
+		rail_color = value
+		queue_redraw()
+var slat_color := Color(1, 1, 1, 0.09)
 var window_color := Color("E8B04B")
 ## How far the belt has moved, in slots.
 var travel: float = 0.0:
@@ -77,27 +85,54 @@ func _arc(ring: float) -> float:
 
 func _draw() -> void:
 	var points := PackedVector2Array()
+	var shadow := PackedVector2Array()
 	var steps := 160
 	var length := perimeter()
 	for i in steps + 1:
-		points.append(_point(length * float(i) / float(steps)))
-	draw_polyline(points, band_color, band_width, true)
-	draw_polyline(points, Color(band_color.lightened(0.18), 0.9), 3.0, true)
-	# Slats move with the belt so a step reads as motion even on an empty stretch.
+		var p := _point(length * float(i) / float(steps))
+		points.append(p)
+		shadow.append(p + Vector2(0, 7))
+	# A soft shadow under the belt, steel rails on both edges, then the band between them.
+	draw_polyline(shadow, Color(0, 0, 0, 0.16), band_width + 8.0, true)
+	draw_polyline(points, rail_color.darkened(0.25), band_width + 2.0, true)
+	draw_polyline(points, rail_color, band_width - 2.0, true)
+	draw_polyline(points, band_color, band_width - 16.0, true)
+	draw_polyline(points, Color(band_color.lightened(0.12), 0.9), 2.0, true)
+	# Crescent slats (the plates of a kaiten chain) move with the belt, so a step reads as motion
+	# even on an empty stretch.
 	var count := slots * 2
 	var shift := fposmod(travel, 1.0) * 2.0
+	var half := band_width * 0.5 - 9.0
+	var dark := Color(0, 0, 0, 0.28)
 	for i in count:
 		var ring := (float(i) + shift) * 0.5
 		var p := point_at(ring)
-		var normal := direction_at(ring).orthogonal()
-		draw_line(p - normal * band_width * 0.42, p + normal * band_width * 0.42, slat_color, 3.0)
+		var forward := direction_at(ring)
+		var normal := forward.orthogonal()
+		var crescent := PackedVector2Array()
+		for k in 7:
+			var u := lerpf(-1.0, 1.0, float(k) / 6.0)
+			crescent.append(p + normal * u * half + forward * (1.0 - u * u) * band_width * 0.13)
+		draw_polyline(crescent, dark, 3.0, true)
+		for k in crescent.size():
+			crescent[k] -= forward * 2.5
+		draw_polyline(crescent, slat_color, 2.0, true)
 	var frame := window_rect()
 	var box := StyleBoxFlat.new()
-	box.bg_color = Color(window_color, 0.12 + 0.18 * window_glow)
+	box.bg_color = Color(window_color, 0.14 + 0.16 * window_glow)
 	box.border_color = window_color
 	box.set_border_width_all(int(5.0 + 3.0 * window_glow))
 	box.set_corner_radius_all(int(frame.size.y * 0.3))
+	box.shadow_color = Color(window_color, 0.25 + 0.35 * window_glow)
+	box.shadow_size = int(6.0 + 10.0 * window_glow)
+	box.anti_aliasing = true
 	draw_style_box(box, frame)
+	# A gold tick under each pick position, so the window reads as "tap here".
+	for w in window:
+		var c := point_at(float(w))
+		var y := frame.end.y - 3.0
+		draw_colored_polygon(PackedVector2Array([c + Vector2(-9, 0) + Vector2(0, y - c.y), c + Vector2(9, 0) + Vector2(0, y - c.y),
+				c + Vector2(0, -8) + Vector2(0, y - c.y)]), window_color.darkened(0.15))
 
 
 func _radius() -> float:

@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/popups/reward_popup.gd" id="1_0c8p0"]
+[ext_resource type="Script" path="res://core/ui/safe_area_margin.gd" id="2_6fh13"]
+[ext_resource type="Script" path="res://core/ui/widgets/currency_pill.gd" id="3_b3gn7"]
+
+[node name="RewardPopup" type="Control" unique_id=1817732864]
+layout_mode = 3
+anchors_preset = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_0c8p0")
+sheet_max_width = 600.0
+
+[node name="Safe" type="MarginContainer" parent="." unique_id=907344914]
+layout_mode = 0
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("2_6fh13")
+extra_margin = 24
+
+[node name="Center" type="CenterContainer" parent="Safe" unique_id=1593263950]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Sheet" type="PanelContainer" parent="Safe/Center" unique_id=1871199792]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SheetPanel"
+
+[node name="Content" type="VBoxContainer" parent="Safe/Center/Sheet" unique_id=766356469]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Safe/Center/Sheet/Content" unique_id=1996393931]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HeaderLabel"
+text = "New on the menu!"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Picture" type="CenterContainer" parent="Safe/Center/Sheet/Content" unique_id=502909801]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Safe/Center/Sheet/Content" unique_id=271469767]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ScreenHeaderLabel"
+text = "Dango"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Text" type="Label" parent="Safe/Center/Sheet/Content" unique_id=1827528407]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Three sweet rice dumplings on a stick."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="RewardRow" type="HBoxContainer" parent="Safe/Center/Sheet/Content" unique_id=525806678]
+layout_mode = 2
+alignment = 1
+
+[node name="Reward" type="PanelContainer" parent="Safe/Center/Sheet/Content/RewardRow" unique_id=643331228]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PillPanel"
+script = ExtResource("3_b3gn7")
+
+[node name="Gap" type="Control" parent="Safe/Center/Sheet/Content" unique_id=907972393]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="OkButton" type="Button" parent="Safe/Center/Sheet/Content" unique_id=2067707117]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"AccentButton"
+text = "Let's go"

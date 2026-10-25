@@ -42,6 +42,9 @@ bundled in commercial games if each copy carries the licence: both export preset
 Add one row per asset as you add them: file, author, licence, source URL.
 | File | Author | Licence | Source |
 |---|---|---|---|
-| `assets/audio/sfx/*.wav` (tick, take, clink, counter, lid, chime, hop, warn, fail, win, click) | Synthesised by `tools/audio/synth_sushi_sfx.gd` (no samples) | Original work | - |
-| Plates, sushi silhouettes, bentos, belt and the menu emblem | Drawn in code (`game/sushi/sushi_art.gd`, `game/kit/path_belt.gd`) | Original work | - |
+| `assets/food/*.png` (nigiri, onigiri, dango, ebi_fry, naruto, purin, ika) and `assets/deco/*.png` (sakura, lantern, gift, star, sparkles, bento, party, tea, chopsticks) | Microsoft, Fluent Emoji (3D renders, 256 px; files renamed) | MIT (`assets/food/LICENSE_fluentui_emoji.txt`, packed into builds) | github.com/microsoft/fluentui-emoji |
+| `assets/audio/sfx/` take_*, clink_*, counter_*, lid_*, tick_*, click_*, coin_*, unwrap, whoosh | Kenney (kenney.nl): Casino Audio, Impact Sounds, Interface Sounds, UI Audio, RPG Audio; trimmed and levelled by `tools/audio/prepare_foley.sh` | CC0 | kenney.nl/assets |
+| `assets/audio/sfx/` hop, chime, warn, fail, win, star, reveal | Synthesised by `tools/audio/synth_sushi_sfx.gd` (a koto-like pluck in the D yo pentatonic scale; no samples) | Original work | - |
+| `assets/audio/music/first_light_particles.ogg` | Yoiyami, "First Light Particles" (faded at both ends, Ogg Vorbis) | CC0 | opengameart.org/node/182244 |
+| Plates, rims, bento boxes, belt, counter wood, serving board, noren curtain and the menu emblem | Drawn in code (`game/sushi/sushi_art.gd`, `game/kit/path_belt.gd`, `game/sushi/sushi_noren.gd`, `game/sushi/sushi_logo.gd`) | Original work | - |
 | The Sushi Loop style (`core/ui/styles/sushi.tres`) and its theme | Palette from the studio plan | Original work | - |
