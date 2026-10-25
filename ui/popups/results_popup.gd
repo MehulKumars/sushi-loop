@@ -1,7 +1,8 @@
 extends Modal
-## End-of-level popup. Call show_win(level, stars, coins) or show_lose(level) after opening.
-## Closes with "next", "retry", "home" or "continue" (lose only, after a rewarded ad the player
-## chose to watch). The game screen decides about interstitials when this opens (AdPolicy).
+## End-of-level popup. Call show_win(level, stars, coins) or show_lose(level, cost, affordable)
+## after opening. Closes with "next", "retry", "home" or "continue" (lose only: two more counter
+## slots, which the game screen pays for in coins). The game screen decides about interstitials
+## when this opens (AdPolicy).
 
 
 func _ready() -> void:
@@ -9,7 +10,7 @@ func _ready() -> void:
 	%NextButton.pressed.connect(close.bind("next"))
 	%RetryButton.pressed.connect(close.bind("retry"))
 	%HomeButton.pressed.connect(close.bind("home"))
-	%ContinueButton.pressed.connect(_on_continue)
+	%ContinueButton.pressed.connect(close.bind("continue"))
 
 
 func show_win(level: int, stars: int, coins: int) -> void:
@@ -27,23 +28,18 @@ func show_win(level: int, stars: int, coins: int) -> void:
 		%Reward.set_value(coins)
 
 
-func show_lose(level: int) -> void:
-	%Headline.text = "Out of moves"
-	%Message.text = "Level %d. Watch a short video for 5 more moves, or try again." % level
+## `cost` coins buy two more counter slots; the button stays visible but disabled when the player
+## cannot afford it, so the offer is always clear and never the only way on.
+func show_lose(level: int, cost: int = 0, affordable: bool = false) -> void:
+	%Headline.text = "Counter full"
+	%Message.text = "Level %d. The plate had nowhere to go. Two more counter slots, or try again." % level
 	%Stars.hide()
 	%RewardRow.hide()
 	%NextButton.hide()
-	%ContinueButton.visible = Services.ads.is_rewarded_ready("continue")
-	%RetryButton.theme_type_variation = &"AccentButton"
-
-
-## Rewarded ads are always the player's choice and say what they give (Play policy).
-func _on_continue() -> void:
-	%ContinueButton.disabled = true
-	Services.ads.show_rewarded("continue")
-	var result: Array = await Services.ads.rewarded_finished
-	if result[1]:
-		close("continue")
-	else:
-		%ContinueButton.disabled = false
-		UI.toast("No reward this time")
+	%ContinueButton.visible = cost > 0
+	%ContinueButton.text = "Continue  +2 slots  ·  %d" % cost
+	%ContinueButton.icon = Icons.COIN
+	%ContinueButton.disabled = not affordable
+	# One primary action: the continue when the player can afford it, else Retry.
+	%ContinueButton.theme_type_variation = &"AccentButton" if affordable else &"Button"
+	%RetryButton.theme_type_variation = &"Button" if affordable and cost > 0 else &"AccentButton"

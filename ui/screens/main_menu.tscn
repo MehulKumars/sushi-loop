@@ -8,9 +8,6 @@
 [ext_resource type="Texture2D" path="res://core/ui/icons/settings.svg" id="6_settings"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/play_arrow.svg" id="7_play"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/grid_view.svg" id="8_grid"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/shopping_cart.svg" id="9_shop"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/redeem.svg" id="10_gift"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/leaderboard.svg" id="11_ranks"]
 
 [node name="MainMenu" type="Control" unique_id=1970485192]
 layout_mode = 3
@@ -99,7 +96,7 @@ autowrap_mode = 2
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"OnBgLabel"
-text = "Your tagline goes here"
+text = "Pack the bentos. Mind the counter."
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -125,7 +122,6 @@ mouse_filter = 2
 layout_mode = 2
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 20
-columns = 2
 
 [node name="LevelsButton" type="Button" parent="Safe/Column/Layout/Links" unique_id=652123130]
 unique_name_in_owner = true
@@ -133,42 +129,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Levels"
 icon = ExtResource("8_grid")
-
-[node name="ShopButton" type="Button" parent="Safe/Column/Layout/Links" unique_id=259863578]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Shop"
-icon = ExtResource("9_shop")
-
-[node name="DailyButton" type="Button" parent="Safe/Column/Layout/Links" unique_id=1320029712]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Daily"
-icon = ExtResource("10_gift")
-
-[node name="DailyDot" type="PanelContainer" parent="Safe/Column/Layout/Links/DailyButton" unique_id=1625234763]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -40.0
-offset_top = 10.0
-offset_right = -12.0
-offset_bottom = 38.0
-grow_horizontal = 0
-mouse_filter = 2
-theme_type_variation = &"DotPanel"
-
-[node name="RanksButton" type="Button" parent="Safe/Column/Layout/Links" unique_id=1557009151]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Ranks"
-icon = ExtResource("11_ranks")
 
 [node name="BottomSpace" type="Control" parent="Safe/Column/Layout" unique_id=230485823]
 custom_minimum_size = Vector2(0, 16)

@@ -1,10 +1,12 @@
 extends SceneTree
 ## Sets node properties in a .tscn the way the editor does (open, change, pack, save), so
 ## nobody hand-writes scene syntax, node IDs or uid:// values. Used by Claude for small edits.
-## Properties only: add, remove or move nodes in the Godot editor.
+## Properties and node removal only: add or move nodes in the Godot editor.
 ##
 ## godot --headless --path . -s tools/scene_edit.gd -- <scene.tscn> <node> <property> <value> [...]
 ## godot --headless --path . -s tools/scene_edit.gd -- <scene.tscn>     (re-save only: adds uid and node ids)
+## godot --headless --path . -s tools/scene_edit.gd -- --remove <scene.tscn> <node> [<node> ...]
+##   (removes the nodes with their children; resources only they used drop out of the file)
 ##   <node>     path from the scene root, "." for the root itself
 ##   <property> any property, including "theme_override_constants/separation"
 ##   <value>    GDScript literal parsed by str_to_var: 624, true, "Play", &"AccentButton",
@@ -17,6 +19,9 @@ extends SceneTree
 
 func _initialize() -> void:
 	var args := OS.get_cmdline_user_args()
+	if args.size() >= 3 and args[0] == "--remove":
+		quit(_remove(args[1], args.slice(2)))
+		return
 	if args.size() == 1:
 		# Just the scene: re-save it in Godot's own format (adds the uid and node ids to a
 		# scene that was written as text).
@@ -56,6 +61,42 @@ func _edit(path: String, edits: PackedStringArray) -> int:
 	if failed:
 		root.free()
 		return 1
+	if _save(path, packed, root) != OK:
+		return 1
+	return _verify(path, edits)
+
+
+## Removes nodes (with their children) and saves; then checks they are really gone.
+func _remove(path: String, nodes: PackedStringArray) -> int:
+	var packed := load(path) as PackedScene
+	if packed == null:
+		printerr("scene_edit: cannot load ", path)
+		return 1
+	var root := packed.instantiate(PackedScene.GEN_EDIT_STATE_MAIN)
+	for node_path in nodes:
+		var node := root.get_node_or_null(NodePath(node_path))
+		if node == null or node == root:
+			printerr("scene_edit: no removable node '%s' in %s" % [node_path, path])
+			root.free()
+			return 1
+		node.get_parent().remove_child(node)
+		node.free()
+		print("scene_edit: removed ", node_path)
+	if _save(path, packed, root) != OK:
+		return 1
+	var saved := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+	var check := saved.instantiate(PackedScene.GEN_EDIT_STATE_MAIN)
+	var left := 0
+	for node_path in nodes:
+		if check.get_node_or_null(NodePath(node_path)) != null:
+			printerr("scene_edit: %s is still in the file" % node_path)
+			left += 1
+	check.free()
+	return 1 if left > 0 else 0
+
+
+## Packs the edited tree into the scene and saves it, keeping the scene's uid.
+func _save(path: String, packed: PackedScene, root: Node) -> Error:
 	var uid := ResourceLoader.get_resource_uid(path)
 	var err := packed.pack(root)
 	root.free()
@@ -70,9 +111,9 @@ func _edit(path: String, edits: PackedStringArray) -> int:
 		err = ResourceSaver.set_uid(path, uid)
 	if err != OK:
 		printerr("scene_edit: saving %s failed: %s" % [path, error_string(err)])
-		return 1
+		return err
 	print("scene_edit: saved ", path)
-	return _verify(path, edits)
+	return OK
 
 
 ## Reloads the saved file and checks that every edit is really in it.

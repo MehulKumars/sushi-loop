@@ -1,15 +1,12 @@
 extends Screen
-## Home screen: logo up top, the big Play button and quick links in the thumb zone.
+## Home screen: the Sushi Loop title up top, the big Play button and Levels in the thumb zone.
 ## Play starts the next level not yet won. Back asks before quitting (Android convention).
-## Shows the daily reward once per launch when it can be claimed.
-
-static var _daily_shown_this_launch: bool = false
+## v1 is free: no shop, daily reward or ranks.
 
 @onready var _coins: CurrencyPill = %Coins
 @onready var _title: Label = %Title
 @onready var _logo: Control = %Logo
 @onready var _play: Button = %PlayButton
-@onready var _daily_dot: Control = %DailyDot
 
 
 func _ready() -> void:
@@ -19,14 +16,8 @@ func _ready() -> void:
 	_play.pressed.connect(_on_play)
 	%SettingsButton.pressed.connect(_on_settings)
 	%LevelsButton.pressed.connect(UI.goto.bind(Screens.LEVEL_SELECT))
-	%ShopButton.pressed.connect(UI.goto.bind(Screens.SHOP))
-	%DailyButton.pressed.connect(_on_daily)
-	%RanksButton.pressed.connect(_on_ranks)
-	_refresh_daily_dot()
+	_build_mark()
 	_intro()
-	if not _daily_shown_this_launch and Progress.daily_status().can_claim:
-		_daily_shown_this_launch = true
-		_on_daily.call_deferred()
 
 
 func on_back() -> void:
@@ -44,22 +35,13 @@ func _on_settings() -> void:
 	_coins.value = Progress.coins()
 
 
-## Google Play Games shows its own leaderboard screen; until it is connected, show ours.
-func _on_ranks() -> void:
-	if Services.leaderboard.has_native_ui():
-		Services.leaderboard.show_board("stars")
-	else:
-		UI.open(load(Screens.RANKS) as PackedScene)
-
-
-func _on_daily() -> void:
-	await UI.open(load(Screens.DAILY_REWARD) as PackedScene).closed
-	_coins.set_value(Progress.coins())
-	_refresh_daily_dot()
-
-
-func _refresh_daily_dot() -> void:
-	_daily_dot.visible = Progress.daily_status().can_claim
+## Three plates on a stretch of belt above the title.
+func _build_mark() -> void:
+	var mark := SushiLogo.new()
+	mark.custom_minimum_size = Vector2(360, 120)
+	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_logo.add_child(mark)
+	_logo.move_child(mark, 0)
 
 
 ## Logo drops in, then the Play button breathes gently to draw the eye (off with Reduce Motion).

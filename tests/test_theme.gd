@@ -5,6 +5,7 @@ extends GutTest
 ## a thick outline (3 px or more) is measured against its outline, per WCAG's halo note.
 
 const THEMES_DIR := "res://core/ui/themes/"
+const STYLES_DIR := "res://core/ui/styles/"
 const TOUCH := 96.0
 
 var _themes: Dictionary[String, Theme] = {}
@@ -16,8 +17,18 @@ func before_all() -> void:
 			_themes[file.get_basename()] = load(THEMES_DIR + file) as Theme
 
 
-func test_all_five_styles_are_built() -> void:
-	assert_eq(_themes.size(), 5, "expected 5 themes in %s, found %s" % [THEMES_DIR, _themes.keys()])
+## The template's five styles plus the game's own; each one must have a built theme.
+func test_every_style_is_built() -> void:
+	var styles: Array[String] = []
+	for file in ResourceLoader.list_directory(STYLES_DIR):
+		if file.ends_with(".tres"):
+			styles.append(file.get_basename())
+	assert_gte(styles.size(), 6, "expected the 5 template styles and the game's own in %s" % STYLES_DIR)
+	for id in ["sleek_dark", "candy_casual", "neon_arcade", "cozy_paper", "pixel_retro", "sushi"]:
+		assert_has(styles, id, "style %s is missing" % id)
+	for id in styles:
+		assert_true(_themes.has(id), "style %s has no built theme in %s (run tools/build_theme.gd)" % [id, THEMES_DIR])
+	assert_eq(_themes.size(), styles.size(), "themes %s vs styles %s" % [_themes.keys(), styles])
 
 
 func test_tokens_exist() -> void:

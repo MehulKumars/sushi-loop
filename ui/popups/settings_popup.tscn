@@ -10,7 +10,6 @@
 [ext_resource type="Texture2D" path="res://core/ui/icons/animation.svg" id="7_motion"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/groups.svg" id="8_credits"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/privacy_tip.svg" id="9_privacy"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/restart_alt.svg" id="10_restore"]
 
 [node name="SettingsPopup" type="Control" unique_id=1173080972]
 layout_mode = 3
@@ -196,13 +195,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Privacy"
 icon = ExtResource("9_privacy")
-
-[node name="RestoreButton" type="Button" parent="Safe/Center/Sheet/Content/Scroll/Rows/Links" unique_id=1920787512]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Restore"
-icon = ExtResource("10_restore")
 
 [node name="ResetButton" type="Button" parent="Safe/Center/Sheet/Content/Scroll/Rows/Links" unique_id=1483177965]
 unique_name_in_owner = true

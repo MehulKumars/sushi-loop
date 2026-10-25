@@ -16,7 +16,7 @@ run/main_scene="res://ui/screens/splash.tscn"
 config/features=PackedStringArray("4.7")
 config/icon="res://icon.png"
 config/quit_on_go_back=false
-boot_splash/bg_color=Color(0.05882353, 0.06666667, 0.08235294, 1)
+boot_splash/bg_color=Color(0.93333334, 0.8901961, 0.8156863, 1)
 boot_splash/show_image=false
 
 [autoload]
@@ -60,7 +60,7 @@ enabled=PackedStringArray("res://addons/maaacks_game_template/plugin.cfg", "res:
 [gui]
 
 common/drop_mouse_on_gui_input_disabled=true
-theme/custom="res://core/ui/themes/sleek_dark.tres"
+theme/custom="res://core/ui/themes/sushi.tres"
 
 [input]
 
@@ -155,5 +155,5 @@ plugins={
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.05882353, 0.06666667, 0.08235294, 1)
+environment/defaults/default_clear_color=Color(0.93333334, 0.8901961, 0.8156863, 1)
 environment/defaults/default_environment="res://default_env.tres"

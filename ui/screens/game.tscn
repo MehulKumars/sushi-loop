@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://cjf7j4kpjbtgl"]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://ui/screens/game.gd" id="1_script"]
 [ext_resource type="Script" path="res://core/ui/styled_background.gd" id="2_bg"]
@@ -7,11 +7,9 @@
 [ext_resource type="Script" path="res://core/ui/widgets/currency_pill.gd" id="5_pill"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/pause.svg" id="6_pause"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/bolt.svg" id="7_bolt"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/grid_view.svg" id="8_board"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/star.svg" id="9_star"]
+[ext_resource type="Script" path="res://game/sushi/sushi_board_view.gd" id="8_h4rbc"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/lightbulb.svg" id="10_hint"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/undo.svg" id="11_undo"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/restart_alt.svg" id="12_shuffle"]
 
 [node name="Game" type="Control" unique_id=1556409171]
 layout_mode = 3
@@ -115,77 +113,16 @@ max_value = 12.0
 value = 12.0
 show_percentage = false
 
-[node name="Board" type="PanelContainer" parent="Safe/Column/Layout" unique_id=748913066]
+[node name="SushiBoard" type="Control" parent="Safe/Column/Layout" unique_id=1085209831]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
-
-[node name="BoardContent" type="VBoxContainer" parent="Safe/Column/Layout/Board" unique_id=1445195168]
-layout_mode = 2
-theme_override_constants/separation = 18
-alignment = 1
-
-[node name="BoardIcon" type="TextureRect" parent="Safe/Column/Layout/Board/BoardContent" unique_id=1664326322]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 112)
-layout_mode = 2
-texture = ExtResource("8_board")
-expand_mode = 1
-stretch_mode = 5
-
-[node name="BoardTitle" type="Label" parent="Safe/Column/Layout/Board/BoardContent" unique_id=1774191752]
-layout_mode = 2
-theme_type_variation = &"HeaderLabel"
-text = "Your game goes here"
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="BoardText" type="Label" parent="Safe/Column/Layout/Board/BoardContent" unique_id=1853452089]
-layout_mode = 2
-theme_type_variation = &"CaptionLabel"
-text = "This placeholder level tests the whole flow: moves, pause, win, lose and results."
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="MoveButton" type="Button" parent="Safe/Column/Layout/Board/BoardContent" unique_id=674783660]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Make a move"
-
-[node name="Win3Button" type="Button" parent="Safe/Column/Layout/Board/BoardContent" unique_id=569439291]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"AccentButton"
-text = "Win with 3 stars"
-icon = ExtResource("9_star")
-
-[node name="Row" type="HBoxContainer" parent="Safe/Column/Layout/Board/BoardContent" unique_id=1660449610]
-layout_mode = 2
-theme_override_constants/separation = 16
-
-[node name="Win1Button" type="Button" parent="Safe/Column/Layout/Board/BoardContent/Row" unique_id=1725310470]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Win, 1 star"
-
-[node name="LoseButton" type="Button" parent="Safe/Column/Layout/Board/BoardContent/Row" unique_id=906506882]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-theme_type_variation = &"DangerButton"
-text = "Lose"
+script = ExtResource("8_h4rbc")
 
 [node name="Boosters" type="HBoxContainer" parent="Safe/Column/Layout" unique_id=724359918]
 layout_mode = 2
 theme_override_constants/separation = 24
 alignment = 1
-
-[node name="HintButton" type="Button" parent="Safe/Column/Layout/Boosters" unique_id=98929441]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"IconButton"
-icon = ExtResource("10_hint")
 
 [node name="UndoButton" type="Button" parent="Safe/Column/Layout/Boosters" unique_id=317949957]
 unique_name_in_owner = true
@@ -193,8 +130,13 @@ layout_mode = 2
 theme_type_variation = &"IconButton"
 icon = ExtResource("11_undo")
 
-[node name="ShuffleButton" type="Button" parent="Safe/Column/Layout/Boosters" unique_id=18010936]
+[node name="Gap" type="Control" parent="Safe/Column/Layout/Boosters" unique_id=701897530]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="HintButton" type="Button" parent="Safe/Column/Layout/Boosters" unique_id=98929441]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"IconButton"
-icon = ExtResource("12_shuffle")
+icon = ExtResource("10_hint")

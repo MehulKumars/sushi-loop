@@ -5,7 +5,8 @@ extends RefCounted
 ## change, so nothing is lost if Android kills the app. Swap or extend it per game.
 ## Tests point `path` at a temporary file.
 
-const LEVEL_COUNT_DEFAULT: int = 24
+## Sushi Loop ships 30 baked levels (SushiLevels.count(); tests/test_sushi_screens.gd keeps the two equal).
+const LEVEL_COUNT_DEFAULT: int = 30
 ## Coins for day 1..7 of the daily reward; day 7 is the big one, then the cycle restarts.
 const DAILY_REWARDS: Array[int] = [50, 75, 100, 150, 200, 300, 500]
 

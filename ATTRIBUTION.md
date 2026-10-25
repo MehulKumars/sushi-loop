@@ -1,8 +1,8 @@
 # Credits
 
-## Mobile Game Template
-A game by Your Studio  
-Design, code and art: Your Name  
+## Sushi Loop
+A game by Mehul Kumar  
+Plates, sushi and bentos drawn in code from the Sushi Loop palette  
 
 ## Made with
 #### Godot Engine

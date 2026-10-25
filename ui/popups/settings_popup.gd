@@ -20,7 +20,6 @@ func _ready() -> void:
 	%CloseButton.pressed.connect(close)
 	%CreditsButton.pressed.connect(UI.goto.bind(Screens.CREDITS))
 	%PrivacyButton.pressed.connect(OS.shell_open.bind(PRIVACY_URL))
-	%RestoreButton.pressed.connect(_on_restore)
 	%ResetButton.pressed.connect(_on_reset)
 	%GalleryButton.pressed.connect(UI.goto.bind(Screens.GALLERY))
 	%Version.text = "Version %s" % ProjectSettings.get_setting("application/config/version", "0.1.0")
@@ -60,12 +59,7 @@ func _on_style_chosen(id: StringName) -> void:
 	get_tree().reload_current_scene()
 
 
-func _on_restore() -> void:
-	# Real stores re-deliver past purchases here; the mock IAP keeps them in memory only.
-	UI.toast("Purchases restored", Icons.CHECK_CIRCLE)
-
-
 func _on_reset() -> void:
-	if await UI.confirm("Reset progress?", "Stars, coins and the daily streak on this phone are deleted.", "Reset", true):
+	if await UI.confirm("Reset progress?", "Stars and coins on this phone are deleted.", "Reset", true):
 		Progress.reset()
 		UI.goto(Screens.MAIN_MENU)

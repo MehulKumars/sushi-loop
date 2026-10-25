@@ -15,7 +15,7 @@ const SETTLE_FRAMES: int = 40
 const SIZE_PRESETS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280), Vector2i(1080, 1280)]
 const SCREENS: PackedStringArray = [
 	"splash", "main_menu", "level_select", "game", "pause", "results_win", "results_lose", "settings",
-	"shop", "daily_reward", "ranks", "confirm", "credits", "gallery",
+	"confirm", "credits", "gallery",
 ]
 
 var _sizes: Array[Vector2i] = []
@@ -191,7 +191,7 @@ func _show_results_lose() -> bool:
 	var popup := _popup(Screens.RESULTS)
 	if popup == null:
 		return false
-	popup.call(&"show_lose", 3)
+	popup.call(&"show_lose", 3, 50, true)
 	return true
 
 
@@ -199,16 +199,7 @@ func _show_settings() -> bool:
 	return await _show_main_menu() and _popup(Screens.SETTINGS) != null
 
 
-func _show_shop() -> bool:
-	return await _open(Screens.SHOP)
 
-
-func _show_daily_reward() -> bool:
-	return await _show_main_menu() and _popup(Screens.DAILY_REWARD) != null
-
-
-func _show_ranks() -> bool:
-	return await _show_main_menu() and _popup(Screens.RANKS) != null
 
 
 func _show_confirm() -> bool:
@@ -217,7 +208,7 @@ func _show_confirm() -> bool:
 	var popup := _popup(Screens.CONFIRM)
 	if popup == null:
 		return false
-	popup.call(&"setup", "Reset progress?", "Stars, coins and purchases on this phone are deleted.", "Reset", true)
+	popup.call(&"setup", "Reset progress?", "Stars and coins on this phone are deleted.", "Reset", true)
 	return true
 
 
