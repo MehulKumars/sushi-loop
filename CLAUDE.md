@@ -1,4 +1,9 @@
-# Mobile Game Template: rules for Claude Code
+# Sushi Loop: rules for Claude Code
+
+Sushi Loop is game 2 of the studio plan, started from our mobile game template on 2026-10-25. Rules, API and the
+level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. v1 is free like Halves (no shop,
+daily reward, ranks or purchases; coins pay for boosters). Template core changes made for this game: the `sushi` style
+as the project theme, autoload **Sound** (`core/audio/sound.gd`, from Halves), `Progress.LEVEL_COUNT_DEFAULT` = 30.
 
 Godot **4.7.2** (pinned) · GDScript only · 2D portrait, 720 px wide canvas · Android first · Compatibility renderer.
 The human owns fun, feel, art, balance, the store page and release decisions. Claude builds code with a checkable answer.
@@ -20,6 +25,10 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
   `ui/screens/game.gd` hosts the gameplay: replace its %Board and call `finish(won, stars)`.
 - `scenes/loading_screens/`: Maaack's loading screen, for SceneLoader (heavy scenes only). `assets/template_icon/`: placeholder app icon.
 - `game/` gameplay scenes and scripts (create per game). `data/` baked levels and configs (create per game).
+  This repo: `game/sushi/` (SushiState rules, SushiSolver, SushiBot, SushiRun, SushiDoom, the board and art views),
+  `game/kit/` (StateSolver, SolverState, Rack, PathBelt: generic, meant for the template later),
+  `data/levels/sushi_v1.json` (baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.json`),
+  `tools/sushi_playtest.gd`, `tools/audio/synth_sushi_sfx.gd`. Sound cues go through `SushiSfx` (run-time lookup).
 - `tests/` GUT tests named `test_*.gd`. `tools/` scripts and the hook. `addons/` vendored plugins.
 - `.claude/skills/`: mobile-ui, game-design-review, godot-game-feel, level-generation, mobile-performance-audit,
   play-release. Use them for those tasks.
@@ -42,8 +51,9 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
 - Show an interstitial anywhere except when a results screen opens, and only if `AdPolicy.can_show_interstitial()` is true.
   Never on Next / Retry / Play again, at level start, during play, after a fail with a continue offer, or in daily/zen modes.
 - Generate shipped levels at runtime. Generate offline, rate with a bot, bake to `data/` with a `gen_version`.
-- Hand-write `uid://` values or restructure existing `.tscn` files as text. Change properties with `tools/scene_edit.gd`;
-  structural scene work happens in the editor (or a new scene, which Godot re-saves).
+- Hand-write `uid://` values or restructure existing `.tscn` files as text. Change properties or remove nodes with
+  `tools/scene_edit.gd` (Godot writes the file); adding or moving nodes happens in the editor, in code, or in a
+  one-off `-s` script that instantiates, changes, packs and saves the scene.
 - Edit anything in `addons/`, or the generated `core/ui/themes/*.tres` (edit `core/ui/styles/` and run the builder).
 - Hard-code colours, fonts or sizes in screens. Use theme type variations and `Tokens` (see `docs/UI_KIT.md`).
 - Name a static function `reload`, `free` or another built-in Object/Script method: `Class.reload()` calls the built-in.
@@ -88,6 +98,8 @@ powershell -ExecutionPolicy Bypass -File tools/check.ps1
 It runs a warm-up import, boots the game headless for 300 frames, and runs every GUT test (incl. contrast and
 touch-size checks of every style, and every screen at three sizes).
 Test cases for generators and solvers are written by the human or a separate session, not the one writing the code.
+(The first Sushi tests were written test-first from `docs/SUSHI_LOOP.md` by the session that built the code, on
+levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human should still review them.)
 
 ## Commands
 - Run the game: `godot --path .`  · Editor: `godot --path . -e`
@@ -96,7 +108,14 @@ Test cases for generators and solvers are written by the human or a separate ses
 - Screenshots of the UI: `powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 [-Styles all] [-Sizes 720x1600] [-Only main_menu,pause] [-Inset 0,64,0,32]`
   -> `build/snapshots/<style>_<w>x<h>_<screen>.png` and `..._contact.png`
 - Rebuild themes after editing a style: `godot --headless --path . -s tools/build_theme.gd`
-- Set scene properties: `godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/shop.tscn Safe extra_margin 24`
+- Set scene properties: `godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/credits.tscn Safe extra_margin 24`
+- Remove scene nodes: `godot --headless --path . -s tools/scene_edit.gd -- --remove res://ui/popups/x.tscn Path/To/Node`
+  (string values from PowerShell 5.1 lose their quotes: run those edits from Bash as `'"Text"'`)
+- Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last]` (about 2 min for 30);
+  knob study: `tools/levelgen/bench_sushi.gd`. Ratings land in `tools/levelgen/reports/sushi_v1.csv`.
+- Play a level for real (needs a window): `godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]`
+  -> frames in `build/playtest/<mode>_<level>/`
+- A new `class_name` fails the hook ("not declared") until `godot --headless --path . --import` refreshes the cache.
 - Debug APK: `godot --headless --path . --export-debug "Android Debug APK" build/game-debug.apk`
 - Phone: `adb install -r build/game-debug.apk`, `adb exec-out screencap -p > shot.png`, Back = `adb shell input keyevent 4`,
   console = `adb shell input keyevent 68` then `adb shell input text fps` + `adb shell input keyevent 66`, logs `adb logcat -s godot`.

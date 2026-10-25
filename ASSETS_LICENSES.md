@@ -28,7 +28,7 @@ bundled in commercial games if each copy carries the licence: both export preset
 | Fredoka | Candy Casual | The Fredoka Project Authors (github.com/hafontia/Fredoka-One) |
 | Orbitron (Reserved Font Name "Orbitron") | Neon Arcade titles | The Orbitron Project Authors (github.com/theleagueof/orbitron) |
 | Exo 2 | Neon Arcade text | The Exo 2 Project Authors (github.com/googlefonts/Exo-2.0) |
-| Nunito | Cozy Paper | The Nunito Project Authors (github.com/googlefonts/nunito) |
+| Nunito | Cozy Paper, Sushi Loop | The Nunito Project Authors (github.com/googlefonts/nunito) |
 | Pixelify Sans | Pixel Retro titles | The Pixelify Sans Project Authors (github.com/eifetx/Pixelify-Sans) |
 | VT323 | Pixel Retro text and numbers | The VT323 Project Authors (peter.hull@oikoi.com) |
 | Anonymous Pro, Courier Prime, Lobster Two | GUT only (not shipped) | See `addons/gut/fonts/` |
@@ -42,3 +42,6 @@ bundled in commercial games if each copy carries the licence: both export preset
 Add one row per asset as you add them: file, author, licence, source URL.
 | File | Author | Licence | Source |
 |---|---|---|---|
+| `assets/audio/sfx/*.wav` (tick, take, clink, counter, lid, chime, hop, warn, fail, win, click) | Synthesised by `tools/audio/synth_sushi_sfx.gd` (no samples) | Original work | - |
+| Plates, sushi silhouettes, bentos, belt and the menu emblem | Drawn in code (`game/sushi/sushi_art.gd`, `game/kit/path_belt.gd`) | Original work | - |
+| The Sushi Loop style (`core/ui/styles/sushi.tres`) and its theme | Palette from the studio plan | Original work | - |

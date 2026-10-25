@@ -30,6 +30,7 @@ Services="*res://core/services/services.gd"
 AppLifecycle="*res://core/app_lifecycle.gd"
 UI="*res://core/ui/ui.gd"
 DevTools="*res://core/dev_tools.gd"
+Sound="*res://core/audio/sound.gd"
 
 [clean_copy_examples]
 

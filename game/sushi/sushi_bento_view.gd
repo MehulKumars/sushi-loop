@@ -41,10 +41,12 @@ func close(speed: float = 1.0) -> void:
 	var motion := Juice.motion_scale
 	var tween := create_tween()
 	tween.tween_property(self, ^"lid", 1.0, 0.16 / speed).set_ease(Tween.EASE_IN)
+	tween.tween_callback(SushiSfx.play.bind(&"lid"))
 	if motion > 0.0:
 		var rest := scale
 		tween.tween_property(self, ^"scale", rest * Vector2(1.0 + 0.1 * motion, 1.0 - 0.1 * motion), 0.06 / speed)
 		tween.tween_property(self, ^"scale", rest, 0.18 / speed).set_trans(Tween.TRANS_SPRING).set_ease(Tween.EASE_OUT)
+	tween.tween_callback(SushiSfx.play.bind(&"chime"))
 	tween.tween_property(self, ^"ribbon", 1.0, 0.14 / speed)
 	await tween.finished
 

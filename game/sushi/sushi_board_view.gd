@@ -223,13 +223,17 @@ func _playback(events: Array[Dictionary]) -> void:
 	_busy = true
 	if events.any(func(e: Dictionary) -> bool: return e.kind == &"advance"):
 		_step_belt()
+	var hop := 0
 	for e in events:
 		match e.kind:
 			&"take":
 				_lift(int(e.plate))
 			&"pack":
 				if e.from == &"counter":
-					_pack(int(e.plate), int(e.slot), int(e.cell))
+					# The relief cascade: each hop a semitone higher.
+					SushiSfx.play(&"hop", hop)
+					hop += 1
+					_pack(int(e.plate), int(e.slot), int(e.cell), false)
 					await _wait(HOP_GAP)
 				else:
 					await _pack(int(e.plate), int(e.slot), int(e.cell))
@@ -474,8 +478,9 @@ func _lift(plate: int) -> void:
 	tween.tween_property(view, ^"scale", view.scale * 1.08, 0.05 / _speed)
 
 
-## Flies `plate` along an arc into cell `cell` of open slot `slot`; the cell fills on landing.
-func _pack(plate: int, slot: int, cell: int) -> void:
+## Flies `plate` along an arc into cell `cell` of open slot `slot`; the cell fills on landing
+## (with a porcelain clink, unless the cascade's rising hops are playing instead).
+func _pack(plate: int, slot: int, cell: int, clink: bool = true) -> void:
 	var view: SushiPlateView = _plates.get(plate)
 	if view == null:
 		return
@@ -487,7 +492,8 @@ func _pack(plate: int, slot: int, cell: int) -> void:
 	_plates.erase(plate)
 	_flying.erase(plate)
 	view.queue_free()
-	SushiSfx.play(&"clink")
+	if clink:
+		SushiSfx.play(&"clink")
 
 
 func _to_counter(plate: int, index: int) -> void:
@@ -528,7 +534,6 @@ func _close(slot: int) -> void:
 	await _await_flights()
 	var bento := _bentos[slot]
 	await bento.close(_speed)
-	SushiSfx.play(&"lid")
 	Haptics.pulse(30, 0.6)
 	if Juice.motion_scale > 0.0:
 		_grains.amount = maxi(4, int(20.0 * Juice.motion_scale))
