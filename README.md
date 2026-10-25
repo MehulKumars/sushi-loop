@@ -6,7 +6,7 @@
 Pack each bento with three of a kind before the counter fills up.</b></p>
 
 <p align="center">
-<a href="https://github.com/MehulKumars/sushi-loop/releases/latest"><b>⬇ Download the latest test build (Android APK)</b></a><br>
+<a href="https://github.com/MehulKumars/sushi-loop/releases"><b>⬇ Download the newest test build (Android APK)</b></a><br>
 Android 7 or newer · free · no timer · plays offline
 </p>
 
@@ -47,7 +47,7 @@ stars under the counter), two for any clean win, one after a continue.
 
 ## Install the test build
 
-1. On your phone, open the [latest release](https://github.com/MehulKumars/sushi-loop/releases/latest)
+1. On your phone, open the newest build on the [releases page](https://github.com/MehulKumars/sushi-loop/releases)
    and download the `.apk` file (sign in to GitHub first: the repository is private).
 2. Open it and allow your browser or file manager to install apps when Android asks.
 3. Sushi Loop installs as its own app, next to Halves. Newer builds update it in place, and

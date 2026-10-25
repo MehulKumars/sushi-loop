@@ -133,6 +133,11 @@ levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human
   the debug key through env vars `GODOT_ANDROID_KEYSTORE_RELEASE_PATH=%APPDATA%/Godot/keystores/debug.keystore`,
   `..._USER=androiddebugkey`, `..._PASSWORD=android`, then `--export-release "Android Debug APK" build/sushi-loop-test.apk`.
   The preset's `test_ads` feature keeps the mock video offers on; the Play preset never has it.
+- Every phone build the human gets is a GitHub release: bump `version/code` and `version/name` (both presets and
+  `config/version`), commit, `git tag -a vX.Y.Z <that commit>`, push the tag, then
+  `gh release create vX.Y.Z build/sushi-loop-X.Y.Z.apk --verify-tag --prerelease --title "Sushi Loop X.Y.Z test build (...)"
+  --notes-file ...` (install steps and
+  what's new, in player words). The README is the game's page: keep its screenshots (`docs/media/`) and features current.
 - Phone: `adb install -r build/game-debug.apk`, `adb exec-out screencap -p > shot.png`, Back = `adb shell input keyevent 4`,
   console = `adb shell input keyevent 68` then `adb shell input text fps` + `adb shell input keyevent 66`, logs `adb logcat -s godot`.
 - Release AAB: see the play-release skill (needs the game's release keystore).
