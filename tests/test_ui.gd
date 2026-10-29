@@ -18,24 +18,16 @@ func after_all() -> void:
 		UI.apply_style(_style_before, false)
 
 
-## The template's five styles plus Sushi Loop's own.
-func test_six_styles_are_listed() -> void:
-	var styles := UI.list_styles()
-	assert_eq(styles.size(), 6)
-	assert_eq(styles[0], &"candy_casual", "listed alphabetically")
-	assert_eq(styles[5], &"sushi", "listed alphabetically")
-	for id in [&"candy_casual", &"cozy_paper", &"neon_arcade", &"pixel_retro", &"sleek_dark", &"sushi"]:
-		assert_has(styles, id)
+## Sushi Loop's own style is the only one.
+func test_only_the_sushi_style_is_listed() -> void:
+	assert_eq(UI.list_styles(), [&"sushi"] as Array[StringName])
 
 
-func test_apply_style_changes_the_project_theme() -> void:
-	UI.apply_style(&"candy_casual", false)
-	var candy := ThemeDB.get_project_theme().get_color(&"accent", &"Tokens")
-	UI.apply_style(&"neon_arcade", false)
-	var neon := ThemeDB.get_project_theme().get_color(&"accent", &"Tokens")
-	assert_ne(candy, neon)
-	assert_eq(UI.current_style, &"neon_arcade")
-	UI.apply_style(&"neon_arcade", false)
+func test_apply_style_sets_the_project_theme() -> void:
+	UI.apply_style(&"sushi", false)
+	assert_eq(UI.current_style, &"sushi")
+	assert_true(ThemeDB.get_project_theme().has_color(&"accent", &"Tokens"), "the style's tokens are in the project theme")
+	UI.apply_style(&"sushi", false)
 	assert_true(ThemeDB.get_project_theme().has_color(&"accent", &"Tokens"), "re-applying the current style keeps it")
 
 

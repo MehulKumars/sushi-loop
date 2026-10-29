@@ -1,42 +1,53 @@
 extends GutTest
-## AppLifecycle applies the player's motion and haptics choices from PlayerConfig,
-## and forwards Android lifecycle notifications to Events.
+## AppLifecycle applies the player's motion and haptics choices from Settings,
+## and forwards Android lifecycle notifications to Events. Settings use a test file.
 
-var _saved: Dictionary = {}
+const TEST_PATH: String = "user://test_settings.cfg"
+
+var _real_path: String = ""
 
 
 func before_each() -> void:
-	for key: String in [AppLifecycle.KEY_REDUCE_MOTION, AppLifecycle.KEY_HAPTICS]:
-		# ConfigFile logs an error when a missing key is read with a null default, so check first.
-		if PlayerConfig.has_section_key(AppLifecycle.SECTION, key):
-			_saved[key] = PlayerConfig.get_config(AppLifecycle.SECTION, key)
-		else:
-			_saved[key] = null
+	_real_path = Settings.path
+	Settings.path = TEST_PATH
+	Settings.clear()
 
 
 func after_each() -> void:
-	for key: String in _saved:
-		if _saved[key] == null:
-			PlayerConfig.erase_section_key(AppLifecycle.SECTION, key)
-		else:
-			PlayerConfig.set_config(AppLifecycle.SECTION, key, _saved[key])
+	Settings.clear()
+	Settings.path = _real_path
+	Settings.load_from_disk()
 	AppLifecycle.apply_settings()
 
 
 func test_defaults_are_full_motion_and_haptics_on() -> void:
-	PlayerConfig.erase_section_key(AppLifecycle.SECTION, AppLifecycle.KEY_REDUCE_MOTION)
-	PlayerConfig.erase_section_key(AppLifecycle.SECTION, AppLifecycle.KEY_HAPTICS)
 	AppLifecycle.apply_settings()
 	assert_eq(Juice.motion_scale, 1.0)
 	assert_true(Haptics.enabled)
 
 
 func test_player_choices_are_applied() -> void:
-	PlayerConfig.set_config(AppLifecycle.SECTION, AppLifecycle.KEY_REDUCE_MOTION, true)
-	PlayerConfig.set_config(AppLifecycle.SECTION, AppLifecycle.KEY_HAPTICS, false)
-	AppLifecycle.apply_settings()
+	Settings.set_reduce_motion(true)
+	Settings.set_haptics(false)
 	assert_eq(Juice.motion_scale, 0.0)
 	assert_false(Haptics.enabled)
+
+
+func test_choices_survive_a_restart() -> void:
+	Settings.set_reduce_motion(true)
+	Settings.set_volume(Settings.MUSIC_BUS, 0.25)
+	Settings.load_from_disk()
+	assert_true(Settings.reduce_motion())
+	assert_almost_eq(Settings.volume(Settings.MUSIC_BUS), 0.25, 0.001)
+
+
+func test_volume_reaches_the_audio_bus() -> void:
+	Settings.set_volume(Settings.SFX_BUS, 0.5)
+	var index := AudioServer.get_bus_index(Settings.SFX_BUS)
+	assert_almost_eq(AudioServer.get_bus_volume_db(index), linear_to_db(0.5), 0.01)
+	Settings.set_volume(Settings.SFX_BUS, 0.0)
+	assert_true(AudioServer.is_bus_mute(index), "zero volume mutes the bus")
+	Settings.set_volume(Settings.SFX_BUS, 1.0)
 
 
 func test_lifecycle_notifications_reach_events() -> void:

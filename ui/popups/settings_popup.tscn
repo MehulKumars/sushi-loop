@@ -209,25 +209,3 @@ layout_mode = 2
 theme_type_variation = &"CaptionLabel"
 text = "Version 0.1.0"
 horizontal_alignment = 1
-
-[node name="StyleSection" type="VBoxContainer" parent="Safe/Center/Sheet/Content/Scroll/Rows" unique_id=463592256]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="StyleLabel" type="Label" parent="Safe/Center/Sheet/Content/Scroll/Rows/StyleSection" unique_id=918836807]
-layout_mode = 2
-theme_type_variation = &"CaptionLabel"
-text = "Style (debug builds only)"
-
-[node name="StyleChips" type="HFlowContainer" parent="Safe/Center/Sheet/Content/Scroll/Rows/StyleSection" unique_id=55174094]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
-
-[node name="GalleryButton" type="Button" parent="Safe/Center/Sheet/Content/Scroll/Rows/StyleSection" unique_id=1953146579]
-unique_name_in_owner = true
-layout_mode = 2
-theme_type_variation = &"GhostButton"
-text = "Open the UI kit gallery"

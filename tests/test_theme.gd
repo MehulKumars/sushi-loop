@@ -17,15 +17,13 @@ func before_all() -> void:
 			_themes[file.get_basename()] = load(THEMES_DIR + file) as Theme
 
 
-## The template's five styles plus the game's own; each one must have a built theme.
+## Sushi Loop has one style, its own; it must have a built theme.
 func test_every_style_is_built() -> void:
 	var styles: Array[String] = []
 	for file in ResourceLoader.list_directory(STYLES_DIR):
 		if file.ends_with(".tres"):
 			styles.append(file.get_basename())
-	assert_gte(styles.size(), 6, "expected the 5 template styles and the game's own in %s" % STYLES_DIR)
-	for id in ["sleek_dark", "candy_casual", "neon_arcade", "cozy_paper", "pixel_retro", "sushi"]:
-		assert_has(styles, id, "style %s is missing" % id)
+	assert_eq(styles, ["sushi"] as Array[String], "the game's own style only, in %s" % STYLES_DIR)
 	for id in styles:
 		assert_true(_themes.has(id), "style %s has no built theme in %s (run tools/build_theme.gd)" % [id, THEMES_DIR])
 	assert_eq(_themes.size(), styles.size(), "themes %s vs styles %s" % [_themes.keys(), styles])

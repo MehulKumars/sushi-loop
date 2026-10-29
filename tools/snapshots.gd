@@ -12,10 +12,11 @@ extends SceneTree
 ## Output: <style>_<w>x<h>_<screen>.png plus one <style>_<w>x<h>_contact.png sheet per size.
 
 const SETTLE_FRAMES: int = 40
+const TestWindow := preload("res://tools/test_window.gd")
 const SIZE_PRESETS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280), Vector2i(1080, 1280)]
 const SCREENS: PackedStringArray = [
 	"splash", "main_menu", "level_select", "game", "pause", "results_win", "results_lose", "settings",
-	"confirm", "credits", "gallery", "dish", "gift",
+	"confirm", "credits", "dish", "gift",
 ]
 
 var _sizes: Array[Vector2i] = []
@@ -123,9 +124,9 @@ func _frames(count: int) -> void:
 
 func _resize(size: Vector2i) -> void:
 	for attempt in 5:
-		root.size = size
+		TestWindow.fit(root, size)
 		await _frames(3)
-		if root.size == size:
+		if TestWindow.canvas(root) == size:
 			return
 	push_warning("window could not be resized to %s" % size)
 
@@ -217,10 +218,6 @@ func _show_confirm() -> bool:
 
 func _show_credits() -> bool:
 	return await _open(Screens.CREDITS)
-
-
-func _show_gallery() -> bool:
-	return await _open(Screens.GALLERY)
 
 
 ## All shots of one style and size, a third of their size, in SCREENS order.

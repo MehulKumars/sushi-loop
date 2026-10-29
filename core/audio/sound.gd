@@ -1,7 +1,7 @@
 extends Node
 ## Autoload Sound: named one-shot effects from a pool of players (pitch variation, semitone steps
-## for combos), a click on every button press, and music playlists handed to ProjectMusicController
-## so it crossfades between tracks and keeps playing across scenes (songs in turn, or rotating
+## for combos), a click on every button press, and music playlists on two players of its own that
+## crossfade between tracks and keep playing across scenes and pauses (songs in turn, or rotating
 ## loops). Volumes are the Settings buses. An effect is `id.wav`, or recorded variants
 ## `id_1.wav`, `id_2.wav` ... of which each play picks one (no machine-gun repeats).
 
@@ -9,6 +9,8 @@ const SFX_PATH: String = "res://assets/audio/sfx/%s.wav"
 const MAX_VARIANTS: int = 9
 const POOL_SIZE: int = 12
 const MUSIC_FADE: float = 1.2
+## Volume of a music player that is faded all the way out.
+const SILENT_DB: float = -40.0
 ## Sounds that carry a meaning players learn (confirm tones, the combo ladder) keep their pitch.
 const STEADY: Array[StringName] = [&"tick", &"click", &"chime", &"hop", &"warn", &"fail", &"win", &"star", &"reveal"]
 
@@ -22,14 +24,27 @@ var _rotate_seconds: float = 0.0
 var _track: int = 0
 var _rotate := Timer.new()
 var _rng := RandomNumberGenerator.new()
+## Two music players: the one playing (`_music[_current]`) and the one fading out.
+var _music: Array[AudioStreamPlayer] = []
+var _current: int = 0
+var _fade: Tween
+var _duck: Tween
 
 
 func _init() -> void:
+	# Menus pause the game; clicks, fanfares and music keep playing.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	for i in POOL_SIZE:
 		var player := AudioStreamPlayer.new()
 		player.bus = &"SFX"
 		add_child(player)
 		_players.append(player)
+	for i in 2:
+		var player := AudioStreamPlayer.new()
+		player.bus = &"Music"
+		player.volume_db = SILENT_DB
+		add_child(player)
+		_music.append(player)
 	_rotate.one_shot = true
 	_rotate.timeout.connect(_next_track)
 	add_child(_rotate)
@@ -38,10 +53,6 @@ func _init() -> void:
 func _ready() -> void:
 	_rng.randomize()
 	get_tree().node_added.connect(_on_node_added)
-	var music := _music_controller()
-	if music != null:
-		music.set(&"fade_in_duration", MUSIC_FADE)
-		music.set(&"fade_out_duration", MUSIC_FADE)
 
 
 ## Plays effect `id` (a file in assets/audio/sfx/). `pitch` multiplies the natural pitch.
@@ -83,27 +94,49 @@ func play_playlist(paths: PackedStringArray, loops: bool = false, rotate_seconds
 
 
 func stop_music() -> void:
-	var music := _music_controller()
 	_playlist = PackedStringArray()
 	_rotate.stop()
-	if music != null:
-		music.call(&"fade_out", MUSIC_FADE)
+	_crossfade(null)
 
 
 func _play_track() -> void:
 	_rotate.stop()
-	var music := _music_controller()
 	var path := _playlist[_track]
 	var stream := load(path) as AudioStreamOggVorbis if ResourceLoader.exists(path) else null
-	if stream == null or music == null:
+	if stream == null:
 		return
 	stream.loop = _loops
-	var player := music.call(&"play_stream", stream) as AudioStreamPlayer
+	var player := _crossfade(stream)
 	if _loops:
 		if _playlist.size() > 1 and _rotate_seconds > 0.0:
 			_rotate.start(_rotate_seconds)
-	elif player != null:
+	else:
 		player.finished.connect(_next_track.bind(_playlist), CONNECT_ONE_SHOT)
+
+
+## Fades the playing track out and `stream` in on the other player (null: just fade out).
+func _crossfade(stream: AudioStream) -> AudioStreamPlayer:
+	if _fade != null:
+		_fade.kill()
+	if _duck != null:
+		_duck.kill()
+	var old := _music[_current]
+	for connection in old.finished.get_connections():
+		old.finished.disconnect(connection.callable)
+	_fade = create_tween().set_parallel()
+	if old.playing:
+		_fade.tween_property(old, ^"volume_db", SILENT_DB, MUSIC_FADE)
+	if stream == null:
+		_fade.chain().tween_callback(old.stop)
+		return old
+	_current = 1 - _current
+	var player := _music[_current]
+	player.stream = stream
+	player.volume_db = SILENT_DB
+	player.play()
+	_fade.tween_property(player, ^"volume_db", 0.0, MUSIC_FADE)
+	_fade.chain().tween_callback(old.stop)
+	return player
 
 
 ## The next song (or soundscape), unless the player picked another list meanwhile.
@@ -116,20 +149,15 @@ func _next_track(list: PackedStringArray = PackedStringArray()) -> void:
 
 ## Lowers the music for a moment so a fanfare reads clearly, then brings it back.
 func duck(seconds: float = 1.4, depth_db: float = -8.0) -> void:
-	var music := _music_controller()
-	if music == null or _playlist.is_empty() or music.get(&"music_stream_player") == null:
+	var player := _music[_current]
+	if _playlist.is_empty() or not player.playing or (_fade != null and _fade.is_running()):
 		return
-	music.call(&"blend_to", depth_db, 0.15)
-	await get_tree().create_timer(seconds).timeout
-	music.call(&"blend_to", 0.0, 0.8)
-
-
-## At quit the music controller would clone its player while the tree is torn down (an engine
-## error). Sound leaves the tree first, so it lets go of the player for it.
-func _exit_tree() -> void:
-	var music := _music_controller()
-	if music != null:
-		music.set(&"music_stream_player", null)
+	if _duck != null:
+		_duck.kill()
+	_duck = create_tween()
+	_duck.tween_property(player, ^"volume_db", depth_db, 0.15)
+	_duck.tween_interval(seconds)
+	_duck.tween_property(player, ^"volume_db", 0.0, 0.8)
 
 
 ## One of the effect's variants, never the same one twice in a row.
@@ -153,10 +181,6 @@ func _stream(id: StringName) -> AudioStream:
 		pick = (pick + 1) % streams.size()
 	_last_variant[id] = pick
 	return streams[pick]
-
-
-func _music_controller() -> Node:
-	return get_node_or_null(^"/root/ProjectMusicController")
 
 
 ## A soft click on every button press; buttons opt out with the meta `ui_sound = false`.

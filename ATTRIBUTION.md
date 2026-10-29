@@ -23,12 +23,8 @@ CC0
 Juan Linietsky, Ariel Manzur and contributors  
 MIT License  
 
-#### Godot Game Template
-Marek Belski and contributors  
-MIT License  
-
 ## Fonts
-Outfit, Fredoka, Orbitron, Exo 2, Nunito, Pixelify Sans and VT323  
+Nunito  
 SIL Open Font License 1.1  
 
 ## Icons

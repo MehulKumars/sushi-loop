@@ -11,24 +11,6 @@ Start Claude Code **inside the game's folder**; that is what loads everything be
 | Auto-check hook | `.claude/settings.json` > `tools/hooks/gd_check.ps1` | After every edit to a `.gd` file, compiles it inside the project and sends real errors back to Claude, which then fixes them |
 | Project checker | `tools/hooks/check_script.gd` | Used by the hook. Plain `godot --check-only` reports false "Identifier not found" errors for autoload names, so this loads scripts in full project context instead |
 | Done check | `tools/check.ps1` | Import, boot the game headless for 300 frames, run all tests. Claude must pass it before saying a task is done |
-| Project skills | `.claude/skills/` | Expert playbooks Claude loads automatically when a task matches (below) |
-
-## The skills
-
-Claude picks a skill when your request matches its description; you can also name it.
-
-| Skill | Use it for | Example prompts |
-|---|---|---|
-| `mobile-ui` | Building or changing screens, popups, HUDs and styles with the UI kit; checks them with tests and screenshots | "Add a lives counter to the HUD" · "Make a pack-opening popup" · "Make a new ocean-themed style" |
-| `game-design-review` | Judging an idea or prototype: core loop, first 60 seconds, difficulty, fail state, juice level, ads and IAP, keep/kill lines. Rules change by game type | "Review this game idea: …" · "Is the difficulty curve in levels 1-20 right?" · "Where should ads go in this game?" |
-| `godot-game-feel` | Juice, VFX, SFX, haptics and Reduce Motion, with the real cost on low-end Android | "Make matching feel more satisfying" · "Add a combo sound chain" · "Add screen shake to hits" |
-| `level-generation` | Solvable, bot-rated, seeded levels baked to data files; daily puzzles | "Write a generator for sort-puzzle levels" · "Make levels 30-50 harder" · "Add a daily puzzle" |
-| `mobile-performance-audit` | Stutter, heat, battery, download size, crashes and ANRs; run before every release | "The game stutters on a cheap phone" · "Audit performance before release" |
-| `play-release` | Keystore, AAB, Play Console tracks, store listing and the pre-release checklist | "Prepare the release" · "Set up signing" · "What do I need for the store page?" |
-
-The skills were tested against the same requests without them (October 2026): they added the
-specialist details CLAUDE.md does not carry, such as numeric keep/kill lines, juice levels per game
-type, Compatibility-renderer limits and on-device profiling steps.
 
 ## How to work with Claude
 

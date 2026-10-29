@@ -4,7 +4,6 @@
 [ext_resource type="Script" path="res://core/ui/styled_background.gd" id="2_bg"]
 [ext_resource type="Script" path="res://core/ui/safe_area_margin.gd" id="3_safe"]
 [ext_resource type="Script" path="res://core/ui/max_width_container.gd" id="4_column"]
-[ext_resource type="Script" path="res://addons/maaacks_game_template/base/nodes/labels/credits_label.gd" id="5_credits"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/arrow_back.svg" id="6_back"]
 [ext_resource type="Script" path="res://core/ui/touch_scroll_container.gd" id="6_v0y5f"]
 
@@ -88,15 +87,3 @@ size_flags_horizontal = 3
 bbcode_enabled = true
 fit_content = true
 horizontal_alignment = 1
-script = ExtResource("5_credits")
-attribution_file_path = "res://ATTRIBUTION.md"
-h1_font_size = 52
-h2_font_size = 42
-h3_font_size = 34
-h4_font_size = 30
-bold_headings = true
-max_image_width = 120
-max_image_height = 96
-disable_images = true
-disable_urls = true
-disable_opening_links = true

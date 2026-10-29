@@ -8,6 +8,7 @@ extends SceneTree
 ## Needs a window (not --headless).
 
 const OUT_DIR: String = "res://build/playtest"
+const TestWindow := preload("res://tools/test_window.gd")
 
 var _out: String = ""
 var _shot: int = 0
@@ -38,11 +39,11 @@ func _initialize() -> void:
 	Progress.set_count("chapters_seen", 99)
 	for tip in ["tip_counter", "tip_stars", "tip_window"]:
 		Progress.set_count(tip, 1)
-	root.size = size
+	TestWindow.fit(root, size)
 	Screens.level = level
 	change_scene_to_file(Screens.GAME)
 	await _frames(30)
-	root.size = size
+	TestWindow.fit(root, size)
 	if still:
 		Juice.motion_scale = 0.0
 	await _frames(10)

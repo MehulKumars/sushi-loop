@@ -12,8 +12,6 @@ signal style_changed(id: StringName)
 
 const THEMES_DIR: String = "res://core/ui/themes/"
 const CONFIRM_SCENE: String = "res://ui/popups/confirm_popup.tscn"
-const CONFIG_SECTION: String = "UI"
-const CONFIG_STYLE: String = "Style"
 const PRESS_SCALE: float = 0.95
 const FADE_SECONDS: float = 0.16
 
@@ -46,9 +44,6 @@ func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
 	get_viewport().gui_focus_changed.connect(_on_focus_changed)
 	current_style = _style_from_project_theme()
-	var saved: String = PlayerConfig.get_config(CONFIG_SECTION, CONFIG_STYLE, "")
-	if not saved.is_empty() and StringName(saved) != current_style and has_style(StringName(saved)):
-		apply_style(StringName(saved), false)
 
 
 # --- Screens and popups ------------------------------------------------------------------
@@ -177,8 +172,9 @@ func has_style(id: StringName) -> bool:
 
 
 ## Switches every screen to another style. The game's default is the project theme
-## (Project Settings > GUI > Theme > Custom); `remember` keeps the choice for next launch.
-func apply_style(id: StringName, remember: bool = true) -> void:
+## (Project Settings > GUI > Theme > Custom). `remember` is kept for callers; Sushi Loop has one
+## style, so nothing is saved.
+func apply_style(id: StringName, _remember: bool = true) -> void:
 	# A fresh copy: the cached one may be the project theme itself, which is cleared below.
 	var theme := ResourceLoader.load(THEMES_DIR + String(id) + ".tres", "Theme", ResourceLoader.CACHE_MODE_IGNORE) as Theme
 	if theme == null:
@@ -193,8 +189,6 @@ func apply_style(id: StringName, remember: bool = true) -> void:
 	project.default_font = theme.default_font
 	project.default_font_size = theme.default_font_size
 	current_style = id
-	if remember:
-		PlayerConfig.set_config(CONFIG_SECTION, CONFIG_STYLE, String(id))
 	style_changed.emit(id)
 
 

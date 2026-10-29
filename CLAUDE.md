@@ -37,8 +37,6 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
   `ui/popups/reward_popup.*` (new dish, gift, chapter cards), `tools/sushi_playtest.gd`.
   Sound cues and music go through `SushiSfx` (run-time lookup of the Sound autoload).
 - `tests/` GUT tests named `test_*.gd`. `tools/` scripts and the hook. `addons/` vendored plugins.
-- `.claude/skills/`: mobile-ui, game-design-review, godot-game-feel, level-generation, mobile-performance-audit,
-  play-release. Use them for those tasks.
 - `docs/`: human guides. `docs/UI_KIT.md` and `docs/ARCHITECTURE.md` describe every module; keep them in sync.
 
 ## Never

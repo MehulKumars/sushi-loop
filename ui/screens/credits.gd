@@ -1,17 +1,43 @@
 extends Screen
-## Credits from ATTRIBUTION.md (Maaack's credits label turns the markdown into text), then the
-## licence texts the shipped code requires: Godot's MIT licence and its third-party parts, and
-## the MIT licence of Maaack's template. Links are shown as plain text, so a tap never opens a
-## browser by accident.
+## Credits from ATTRIBUTION.md (headings and lines of a small markdown file turned into BBCode),
+## then the licence texts the shipped code requires: Godot's MIT licence and its third-party parts.
+## Links are shown as plain text, so a tap never opens a browser by accident.
 
-const MAAACK_LICENSE: String = "res://LICENSE.txt"
+const ATTRIBUTION: String = "res://ATTRIBUTION.md"
+## Font size per markdown heading level (#, ##, ###, ####).
+const HEADING_SIZES: Array[int] = [52, 42, 34, 30]
 
 
 func _ready() -> void:
 	back_scene = Screens.MAIN_MENU
 	%BackButton.pressed.connect(on_back)
 	var label: RichTextLabel = %CreditsText
+	label.text = ""
+	label.append_text(markdown_to_bbcode(FileAccess.get_file_as_string(ATTRIBUTION)))
 	label.append_text("\n\n" + _licences())
+
+
+## Headings become bold lines at HEADING_SIZES; other lines stay as they are (two trailing
+## spaces, markdown's line break, are dropped). The first "# " title is skipped: the screen has one.
+static func markdown_to_bbcode(text: String) -> String:
+	var out: PackedStringArray = []
+	var skipped_title := false
+	for raw in text.replace("\r\n", "\n").split("\n"):
+		var line := raw.strip_edges()
+		var level := 0
+		while level < line.length() and line[level] == "#":
+			level += 1
+		if level == 1 and not skipped_title:
+			skipped_title = true
+			continue
+		if level > 0:
+			var size := HEADING_SIZES[mini(level, HEADING_SIZES.size()) - 1]
+			if not out.is_empty():
+				out.append("")
+			out.append("[font_size=%d][b]%s[/b][/font_size]" % [size, line.substr(level).strip_edges()])
+		elif not line.is_empty():
+			out.append(line.replace("[", "[lb]"))
+	return "\n".join(out)
 
 
 ## Licence notices. The font (OFL) and icon (Apache) licence files ship in the app as well.
@@ -20,10 +46,6 @@ func _licences() -> String:
 	lines.append("[b]Godot Engine[/b]")
 	lines.append("[font_size=22]%s[/font_size]" % _unwrap(Engine.get_license_text()))
 	lines.append("")
-	if FileAccess.file_exists(MAAACK_LICENSE):
-		lines.append("[b]Godot Game Template (Maaack)[/b]")
-		lines.append("[font_size=22]%s[/font_size]" % _unwrap(FileAccess.get_file_as_string(MAAACK_LICENSE)))
-		lines.append("")
 	lines.append("[b]Parts of Godot Engine[/b]")
 	var parts: PackedStringArray = []
 	for info: Dictionary in Engine.get_copyright_info():
