@@ -10,7 +10,7 @@ Pack each bento with three of a kind before the counter fills up.</b></p>
 Android 7 or newer · free · no timer · plays offline
 </p>
 
-![Home screen, a plate flying into a bento, a bento closing in Lantern Alley, a new dish card](docs/media/screens.png)
+![Home: the chapter as a road of plates; a long loop in play; a new dish card; a three-star win](docs/media/screens.png)
 
 ## How to play
 
