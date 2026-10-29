@@ -1,17 +1,17 @@
 extends GutTest
-## The baked levels (data/levels/sushi_v1.json) against docs/SUSHI_LOOP.md "Levels" and "Stars".
+## The baked levels (data/levels/sushi_v2.json) against docs/SUSHI_LOOP.md "Levels" and "Stars".
 
-const COUNT: int = 60
+const COUNT: int = 1000
 
 
-func test_sixty_levels_in_order_with_the_gen_version() -> void:
+func test_all_levels_in_order_with_the_gen_version() -> void:
 	var levels := SushiLevels.all()
 	assert_eq(levels.size(), COUNT)
 	assert_eq(SushiLevels.gen_version(), SushiLevels.GEN_VERSION)
 	for i in levels.size():
 		assert_eq(levels[i].id, i + 1)
 	assert_eq(SushiLevels.level(1).id, 1)
-	assert_eq(SushiLevels.level(999).id, COUNT, "clamped")
+	assert_eq(SushiLevels.level(COUNT + 50).id, COUNT, "clamped")
 
 
 func test_every_level_is_valid_and_solvable() -> void:
@@ -31,7 +31,7 @@ func test_par_and_star_peak() -> void:
 
 
 func test_par_is_right_for_a_sample() -> void:
-	for id: int in [1, 5, 9, 15, 19, 25, 29]:
+	for id: int in [1, 5, 9, 15, 19, 25, 29, 64, 105, 359, 588, 777, 999]:
 		var level := SushiLevels.level(id)
 		assert_eq(SushiSolver.par(level, 200_000), level.par, "level %d" % id)
 
@@ -93,9 +93,9 @@ func test_hard_levels_reward_care() -> void:
 
 func test_sizes_in_range() -> void:
 	for level in SushiLevels.all():
-		assert_between(level.belt.size(), 12, 30, "level %d" % level.id)
+		assert_between(level.belt.size(), 12, 32, "level %d" % level.id)
 		assert_between(level.window, 2, 3)
-		assert_between(level.counter, 4, 6)
+		assert_between(level.counter, 3, 7)
 		assert_between(level.open, 1, 2)
 		assert_between(level.preview, 0, 3)
 
@@ -113,3 +113,34 @@ func test_late_chapters_have_their_twist() -> void:
 			if (twists[chapter] as Callable).call(SushiLevels.level(id)):
 				with_twist += 1
 		assert_gte(with_twist, 5, "chapter %d: most levels carry the twist" % chapter)
+
+
+## From chapter 7 on, every level carries its chapter's twist(s) (SushiChapters), so the card that
+## opens the chapter tells the truth. A mixed chapter gives each level one twist of its own.
+func test_every_later_level_has_the_twist_its_chapter_names() -> void:
+	var checks := {
+		&"narrow": func(l: SushiLevel) -> bool: return l.window == 2,
+		&"single": func(l: SushiLevel) -> bool: return l.open == 1,
+		&"hidden": func(l: SushiLevel) -> bool: return l.preview == 0,
+		&"long": func(l: SushiLevel) -> bool: return l.belt.size() >= 27,
+		&"dense": func(l: SushiLevel) -> bool: return l.belt.size() == l.plate_count(),
+		&"tight": func(l: SushiLevel) -> bool: return l.preview == 3,
+	}
+	for level in SushiLevels.all():
+		var chapter := SushiLevels.chapter(level.id)
+		if chapter <= SushiChapters.FIRST.size():
+			continue
+		var twists := SushiChapters.twists(chapter)
+		if twists.has(&"mixed"):
+			twists = [SushiChapters.mixed_twist(level.id)]
+		for twist in twists:
+			assert_true((checks[twist] as Callable).call(level), "level %d lacks its chapter's twist %s" % [level.id, twist])
+
+
+func test_ten_levels_per_chapter_and_a_name_for_each() -> void:
+	assert_eq(SushiMeta.chapter_count(), COUNT / SushiLevels.CHAPTER)
+	var names: Dictionary[String, bool] = {}
+	for chapter in range(1, SushiMeta.chapter_count() + 1):
+		names[SushiMeta.chapter_name(chapter)] = true
+		assert_ne(SushiChapters.text(chapter), "", "chapter %d has a card line" % chapter)
+	assert_eq(names.size(), SushiMeta.chapter_count(), "every chapter has its own name")

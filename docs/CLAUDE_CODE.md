@@ -21,12 +21,12 @@ Start Claude Code **inside the game's folder**; that is what loads everything be
 3. **Ask for explanations:** "Explain what you just wrote like I'm a beginner."
 4. **Play every step yourself**, on PC and on the phone, before moving on.
 5. **Commit after each working step**, so you can always go back.
-6. **For UI work, ask Claude to look at the screenshots** ("run the snapshots and check the shop at
+6. **For UI work, ask Claude to look at the screenshots** ("run the snapshots and check home at
    720x1280 and 960x1280"). It can read the PNGs and catch overlaps, clipping and contrast problems.
 
 A good first session on a new game:
 ```
-Use game-design-review on this idea: <one paragraph>.
+Review this idea as a mobile game designer: <one paragraph>.
 Plan a greybox: one screen, placeholder shapes, the core action only. Plan only, no code yet.
 Build step 1 of the plan with tests, then run tools/check.ps1.
 Explain the new scripts to me like I'm a beginner.

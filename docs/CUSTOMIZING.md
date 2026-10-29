@@ -6,63 +6,66 @@ What to change for every game, what you can change if the game needs it, and wha
 
 | What | Where | Notes |
 |---|---|---|
-| Game name | `project.godot` > `config/name` | Shown as the main menu title |
-| Style | Project Settings > GUI > Theme > Custom | Pick one of the five themes in `core/ui/themes/`, or make your own ([UI_KIT.md](UI_KIT.md)) |
-| Tagline | `ui/screens/main_menu.tscn` > `Tagline` | Or hide the label |
+| Game name | `project.godot` > `config/name` | Shown on the splash (home's title shows the chapter's restaurant instead) |
+| Style | Project Settings > GUI > Theme > Custom | This game's is `sushi` (`core/ui/themes/sushi.tres`, the only style). A new one is made in `core/ui/styles/` and built by `tools/build_theme.gd` ([UI_KIT.md](UI_KIT.md)) |
 | Package name | `export_presets.cfg` > `package/unique_name` (both presets) | For example `com.yourstudio.halves`. Never ship `com.changeme.template`; it can never change after the first upload |
 | App name on the phone | `export_presets.cfg` > `package/name` | |
 | Version | `version/code` (raise for every upload) and `version/name` in both presets; `config/version` in `project.godot` (shown in Settings) | |
-| App icon | `assets/template_icon/` and `icon.png` | The template ships its own placeholder (a play mark). Replace every file with your game's icon at the same sizes (the README there lists them); both export presets already point at them. Keep important artwork inside the centred 264 px circle of the 432 px adaptive foreground |
-| Splash | `ui/screens/splash.tscn` | Shows the game name and "Made with Godot" for about a second. Add your studio logo to `%Logo` if you have one |
+| App icon | `assets/icon/` | Sushi Loop's icons are drawn by `tools/make_icon.gd` (needs a window); both export presets point at them. Keep important artwork inside the centred 264 px circle of the 432 px adaptive foreground |
+| Splash | `ui/screens/splash.tscn` | Shows the app icon's plate, the game name and "Made with Godot" for 0.6 s, then level 1 (a player with no win yet) or home. Add your studio logo to `%Logo` if you have one |
 | Credits | `ATTRIBUTION.md` | Replace "Your Studio" and "Your Name" with your team; keep the "Made with", font and icon entries. The licence texts are added below automatically |
 | Privacy policy | `ui/popups/settings_popup.gd` > `PRIVACY_URL` | Google Play requires one; a GitHub Pages page works |
-| Release keystore | outside the repo | See the `play-release` skill |
+| Release keystore | outside the repo | Never commit it; Godot reads its path, user and password from the `GODOT_ANDROID_KEYSTORE_RELEASE_*` environment variables |
 | Licence register | `ASSETS_LICENSES.md` | One row per asset you add |
 
 ## The game screen
 
-`ui/screens/game.tscn` is a real HUD around a placeholder board:
+`ui/screens/game.tscn` holds the Sushi Loop board (`%SushiBoard`, from `game/sushi/`) and its HUD:
 
-- Replace the content of `%Board` with your game (or instance your game scene in it).
-- When a level ends, call `finish(won, stars)`. It records progress and coins, opens the results
-  popup, considers an interstitial through `AdPolicy`, and handles Next / Retry / Home / Continue.
-- `%Goal` and `%MovesLabel` show moves left; replace them with your goal (score, time, targets).
-- The three booster buttons (`%HintButton`, `%UndoButton`, `%ShuffleButton`) only show a toast.
-- `Screens.level` is the level to play; `Progress.LEVEL_COUNT_DEFAULT` (24) is the number of levels
-  in level select (`level_count` on the level select screen).
+- When a level ends, the screen calls `finish(won, stars)`. It records progress and coins, opens
+  the results popup, considers an interstitial through `AdPolicy`, and handles Next (straight into
+  the next level) / Retry / Home / Continue.
+- `%Goal` and `%MovesLabel` show the bentos packed out of the level's total.
+- `%UndoButton` and `%HintButton` are the boosters: free uses first, then coins (`UNDO_COST`,
+  `HINT_COST`), or a rewarded video when the player is short of coins.
+- `Screens.level` is the level to play; `Progress.LEVEL_COUNT_DEFAULT` (1000) is the number of
+  levels. Sushi Loop's levels, chapters and the home road are described in
+  [SUSHI_LOOP.md](SUSHI_LOOP.md#levels).
 - Back opens the pause popup. Save on `Events.app_paused` if your game holds state that
   `Progress` does not.
 
-## Rewards, shop and daily reward
+## Rewards
 
 | What | Where |
 |---|---|
-| Coins per star | `ui/screens/game.gd` > `COINS_PER_STAR` |
-| Daily reward amounts | `core/progress.gd` > `DAILY_REWARDS` (7 days) |
-| Shop products and prices | `ui/screens/shop.gd` > `PACKS`, `NO_ADS_ID`, `FREE_COINS`. Prices are placeholders; real ones come from Play Billing |
-| Remove-ads purchase | `Progress.owns("remove_ads")`; skip interstitials when it is true |
+| Coins per star | `ui/screens/game.gd` > `COINS_PER_STAR` (more on hard and super-hard levels: `ROLE_BONUS`) |
+| Booster and continue prices | `ui/screens/game.gd` > `UNDO_COST`, `HINT_COST`, `CONTINUE_COST` |
 
-Remove screens you do not need (for example the shop) by deleting the scene, its button and its
-entry in `ui/screens.gd`, `tests/test_screens.gd` and `tools/snapshots.gd`.
+Sushi Loop has no shop, daily reward or purchases (the economy is in
+[SUSHI_LOOP.md](SUSHI_LOOP.md)). `Progress` still has the template's daily streak (`DAILY_REWARDS`)
+and owned items (`owns()`), unused by this game.
+
+Remove screens you do not need by deleting the scene, its button and its entry in `ui/screens.gd`,
+`tests/test_screens.gd` and `tools/snapshots.gd`.
 
 ## Look and feel
 
 | What | Where | How |
 |---|---|---|
 | Colours, fonts, corners, button shape, background pattern | `core/ui/styles/<style>.tres` | Edit in the Inspector, run `tools/build_theme.gd`, check with `tools/check.ps1` and `tools/snapshots.ps1` |
-| How a component looks in every style | `tools/build_theme.gd` | The design system; rebuild after changes |
+| How a component looks in every style | `tools/build_theme.gd` | The design system; rebuild after changes (Sushi Loop has one style, `sushi`) |
 | Icons | `core/ui/icons/`, `core/ui/icons.gd` | Material Symbols; how to add one is in `icons.gd` |
 | Palette for game pieces | per game | Text contrast at least 4.5:1 and game pieces at least 3:1 against their background; pair every meaningful colour with a shape or pattern; check in greyscale and a colour-blind simulator. Reuse the style's Tokens where you can |
-| Juice | your gameplay code | Pick the register for the game type (calm, crescendo-only, physical, loud-but-readable). The `godot-game-feel` skill has the details |
-| Music and sounds | `AudioStreamPlayer` nodes on bus **Music** or **SFX** | Buses are Master, Music, SFX (`default_bus_layout.tres`); the Settings sliders control Music and SFX. WAV for short effects, Ogg for music |
+| Juice | your gameplay code | Pick the register for the game type (calm, crescendo-only, physical, loud-but-readable). Sushi Loop's is in [SUSHI_LOOP.md](SUSHI_LOOP.md) (Feel) |
+| Music and sounds | the `Sound` autoload (`core/audio/sound.gd`); Sushi Loop calls it through `SushiSfx` | `Sound.play(id)` for effects in `assets/audio/sfx/`, `Sound.play_playlist(paths)` for music. Buses are Master, Music, SFX (`default_bus_layout.tres`); the Settings sliders control Music and SFX. WAV for short effects, Ogg for music |
 
 ## Settings
 
 `ui/popups/settings_popup.tscn` has Music and Sound volume, Vibration, Reduce motion, Credits,
-Privacy, Restore purchases, Reset progress and the version. To add a setting, add a row (icon,
-label, control) and read/write it with `PlayerConfig.get_config("GameSettings", "YourKey", default)` /
-`PlayerConfig.set_config(...)`, the way `core/settings.gd` does. Set `show_style_picker` to let
-players choose the style.
+Privacy, Reset progress and the version. To add a setting, add a row (icon, label, control) and a
+getter and setter in `core/settings.gd`, which keeps every setting in its own ConfigFile,
+`user://settings.cfg` (sections `audio` and `feel`). There is no style picker: the game has one
+style.
 
 ## Ad rules
 
@@ -82,8 +85,9 @@ start, during play, on Retry / Next / Play again, or in the first session.
 The canvas is 720 px wide, portrait, with `canvas_items` stretch and `expand` aspect: taller phones
 show more vertically (up to about 1700 px), tablets and foldables get a wider canvas (about
 960-1100 px). Every screen keeps its content in a `MaxWidthContainer` and its grids adaptive, and
-`tests/test_screens.gd` checks three sizes. The PC window is 405×720. Landscape would need every
-screen rearranged; it is not supported.
+`tests/test_screens.gd` checks three sizes. The PC window is 405×720 (the snapshot and playtest
+tools size their own window through `tools/test_window.gd`). Landscape would need every screen
+rearranged; it is not supported.
 
 ## Change only on purpose
 
@@ -92,4 +96,4 @@ screen rearranged; it is not supported.
 - `CLAUDE.md` rules: they encode the research; change them deliberately, not to make a task easier.
 - `addons/`: never edit vendored plugins; update them as a whole to a pinned version.
 - `export_presets.cfg` filters: tests, tools and editor-only addons must stay out of builds; the
-  font and icon licence files must stay in.
+  baked levels in `data/` and the font, icon and emoji licence files must stay in.

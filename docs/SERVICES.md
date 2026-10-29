@@ -12,7 +12,7 @@ and the template hides each one behind an interface in `core/services/`.
 | Leaderboards, achievements, cloud saves | Google Play Games Services | free | `LeaderboardService` interface + mock |
 | Analytics and crash reports | Firebase (free Spark plan) or Sentry | free tiers | `AnalyticsService` interface + mock |
 | Review prompt | Google Play in-app review | free | `ReviewService` interface + mock |
-| Progress and settings | on the phone | free | `SaveStore` (real, done) and Maaack's `PlayerConfig` |
+| Progress and settings | on the phone | free | `SaveStore` (real, done) and `Settings` (`user://settings.cfg`) |
 | Cross-device leaderboards (only if needed later) | Talo | free up to 10,000 players | not included |
 
 Avoid: SilentWolf (shut down around 1 Nov 2025), Supabase free projects (pause after a week idle),

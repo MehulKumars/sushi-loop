@@ -1,11 +1,10 @@
 extends Screen
-## First screen after launch: the game's name on the style's background for about a second,
-## then the main menu (tap to skip). Counts the session and starts the music.
-## Put your studio logo in %Logo if you have one.
-## Android shows the app icon on its own launch splash just before this (export preset >
-## splash_screen/icon), so the two together read as one short, branded start.
+## First screen after launch: the game's name for a moment (tap to skip), then straight into
+## level 1 for a player who has not won a level yet, or home for everyone else. Counts the
+## session and starts the music. Android shows the app icon on its own launch splash just before
+## this (export preset > splash_screen/icon), so the two together read as one short start.
 
-const HOLD_SECONDS: float = 1.1
+const HOLD_SECONDS: float = 0.6
 const MARK := preload("res://assets/icon/icon_splash_512.png")
 
 var _leaving: bool = false
@@ -54,4 +53,12 @@ func _continue() -> void:
 	if _leaving:
 		return
 	_leaving = true
-	UI.goto(Screens.MAIN_MENU)
+	UI.goto(first_screen())
+
+
+## Where a launch lands: a new player plays at once, the rest see home.
+static func first_screen() -> String:
+	if Progress.levels_won() == 0:
+		Screens.level = 1
+		return Screens.GAME
+	return Screens.MAIN_MENU

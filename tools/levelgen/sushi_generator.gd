@@ -1,12 +1,156 @@
 class_name SushiGenerator
 extends RefCounted
 ## Offline Sushi Loop level generator (docs/SUSHI_LOOP.md "Levels"): deals a bento queue and a belt
-## from a seeded RNG, then rates the deal with the solver (solvable, par, search size) and the bots
-## (200 runs each). Used by tools/levelgen/generate_sushi.gd and bench_sushi.gd; never at run time.
+## from a seeded RNG, rates the deal with the solver (solvable, par, search size) and the bots
+## (200 runs each), and searches deals until one lands in the plan's band (search()).
+## Used by tools/levelgen/generate_sushi.gd and bench_sushi.gd; never at run time.
 
-const GEN_VERSION: int = 1
+const GEN_VERSION: int = SushiPlan.GEN_VERSION
 const RUNS: int = 200
 const SOLVE_BUDGET: int = 150_000
+## Deals tried per level before keeping the nearest miss.
+const MAX_ATTEMPTS: int = 900
+## Stop once this many deals are in the band.
+const ENOUGH: int = 8
+## A quick look first: after QUICK_RUNS runs, a deal more than QUICK_MARGIN outside its band is
+## dropped without the remaining runs (the full count only goes to deals that may fit).
+const QUICK_RUNS: int = 40
+const QUICK_MARGIN: float = 0.2
+
+
+## When the planned knobs land no deal in the band, search() tries these counter steps (from the
+## planned counter) crossed with SPREAD_TRIES, ATTEMPTS_PER_TRY deals each. Which way helps depends
+## on the twists (one bento and a two-plate window may need plates in better order to get harder),
+## so the grid is tried rather than guessed.
+const COUNTER_STEPS: Array[int] = [0, -1, 1, -2, 2]
+const SPREAD_TRIES: Array[Array] = [[0.1, 0.5], [0.3, 0.8], [0.6, 1.0]]
+const ATTEMPTS_PER_TRY: int = 300
+## A kept level's careful win rate is never below this (no level is one narrow line).
+const CAREFUL_FLOOR: float = 0.35
+## On hard and super-hard levels the careful bot beats the greedy one by more than this.
+const CARE_PAYS: float = 0.2
+
+
+## Deals level `spec.id` (SushiPlan.spec()) until ENOUGH deals land in its band and keeps the one
+## nearest the band's middle. With no deal in the band, tries the counter and spread grid
+## (COUNTER_STEPS x SPREAD_TRIES) until one lands, keeping the nearest miss otherwise. Returns
+## {"level": SushiLevel or null, "nodes", "dead_ends", "attempts", "in_band", "miss" (0 when in
+## the band), "rounds"}.
+static func search(spec: Dictionary) -> Dictionary:
+	var tries: Array[Dictionary] = [spec]
+	for step in COUNTER_STEPS:
+		for spread in SPREAD_TRIES:
+			var counter := int(spec.counter) + step
+			if counter < 3 or counter > 7:
+				continue
+			var variant := spec.duplicate()
+			variant.counter = counter
+			variant.spread = spread
+			tries.append(variant)
+	var best := {}
+	var attempts := 0
+	for round_ in tries.size():
+		var found := _search_round(tries[round_], round_, MAX_ATTEMPTS if round_ == 0 else ATTEMPTS_PER_TRY)
+		attempts += int(found.attempts)
+		var level: SushiLevel = found.level
+		if level != null and level.careful >= CAREFUL_FLOOR and (best.is_empty() or found.miss < best.miss):
+			best = found
+			best.rounds = round_ + 1
+		if not best.is_empty() and best.miss == 0.0:
+			break
+	if best.is_empty():
+		return {"level": null, "nodes": 0, "dead_ends": 0, "attempts": attempts, "in_band": 0, "miss": 0.0, "rounds": tries.size()}
+	best.attempts = attempts
+	return best
+
+
+static func _search_round(spec: Dictionary, round_: int, max_attempts: int = MAX_ATTEMPTS) -> Dictionary:
+	var id: int = spec.id
+	var band: Dictionary = spec.band
+	var spread: Array = spec.spread
+	var best: SushiLevel = null
+	var best_score := INF
+	var out := {"level": null, "nodes": 0, "dead_ends": 0, "attempts": 0, "in_band": 0, "miss": 0.0}
+	for attempt in max_attempts:
+		out.attempts = attempt + 1
+		var rng := SeedService.make_rng(["sushi", id, round_, attempt], GEN_VERSION)
+		var deal_spec := spec.duplicate()
+		deal_spec.spread = rng.randf_range(float(spread[0]), float(spread[1]))
+		var level := deal(deal_spec, rng)
+		level.id = id
+		level.role = spec.role
+		level.seed = SeedService.make_seed(["sushi", id, round_, attempt], GEN_VERSION)
+		var solver := StateSolver.run(SushiState.start(level), SOLVE_BUDGET)
+		if solver.status != StateSolver.Status.SOLVED:
+			continue
+		level.greedy = _quick_rate(level, SushiBot.GREEDY, level.seed, band.greedy)
+		var miss := _outside(level.greedy, band.greedy)
+		if miss > 0.3 and best_score < INF:
+			continue
+		level.careful = _quick_rate(level, SushiBot.CAREFUL, level.seed + 1, band.careful)
+		miss += _outside(level.careful, band.careful)
+		if miss > 0.0 and miss >= best_score:
+			continue
+		level.par = SushiSolver.par(level, SOLVE_BUDGET)
+		if level.par < 0:
+			continue
+		if level.par < int(band.get("par_min", 0)):
+			miss += 0.25
+		miss += _care_shortfall(level)
+		var score := miss
+		if miss == 0.0:
+			out.in_band += 1
+			# In the band: prefer the middle of both ranges (always below any miss).
+			score = -1.0 + _off_middle(level.greedy, band.greedy) + _off_middle(level.careful, band.careful)
+		if score < best_score:
+			best_score = score
+			best = level
+			out.nodes = solver.nodes
+			out.dead_ends = solver.dead_ends
+		if out.in_band >= ENOUGH:
+			break
+	if best == null:
+		return out
+	# A miss may carry a quick estimate: rate the keeper in full.
+	best.greedy = SushiBot.win_rate(best, SushiBot.GREEDY, RUNS, best.seed)
+	best.careful = SushiBot.win_rate(best, SushiBot.CAREFUL, RUNS, best.seed + 1)
+	best.star_peak = mini(best.counter, best.par + 1)
+	out.level = best
+	out.miss = maxf(best_score, 0.0)
+	return out
+
+
+## How far a hard or super-hard level falls short of rewarding care (0 when careful play wins
+## more than CARE_PAYS above greedy play, and on other roles).
+static func _care_shortfall(level: SushiLevel) -> float:
+	if level.role != "hard" and level.role != "super":
+		return 0.0
+	return maxf(0.0, CARE_PAYS + 0.01 - (level.careful - level.greedy))
+
+
+## The bot's win rate over RUNS runs, or over QUICK_RUNS when that is already far outside `range_`.
+static func _quick_rate(level: SushiLevel, kind: int, seed: int, range_: Array) -> float:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	var wins := 0
+	for run in RUNS:
+		if SushiBot.play(level, kind, rng):
+			wins += 1
+		if run + 1 == QUICK_RUNS:
+			var quick := float(wins) / float(QUICK_RUNS)
+			if _outside(quick, range_) > QUICK_MARGIN:
+				return quick
+	return float(wins) / float(RUNS)
+
+
+static func _outside(value: float, range_: Array) -> float:
+	return maxf(0.0, float(range_[0]) - value) + maxf(0.0, value - float(range_[1]))
+
+
+static func _off_middle(value: float, range_: Array) -> float:
+	var lo := float(range_[0])
+	var hi := float(range_[1])
+	return absf(value - (lo + hi) * 0.5) / maxf(hi - lo, 0.01) * 0.1
 
 
 ## A deal for `spec` ({types, bentos, belt, open, window, counter, preview, spread}). `spread` (0-1)

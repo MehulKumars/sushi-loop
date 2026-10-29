@@ -15,7 +15,7 @@ const SETTLE_FRAMES: int = 40
 const TestWindow := preload("res://tools/test_window.gd")
 const SIZE_PRESETS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280), Vector2i(1080, 1280)]
 const SCREENS: PackedStringArray = [
-	"splash", "main_menu", "level_select", "game", "pause", "results_win", "results_lose", "settings",
+	"splash", "main_menu", "game", "pause", "results_win", "results_lose", "settings",
 	"confirm", "credits", "dish", "gift",
 ]
 
@@ -50,7 +50,7 @@ func _initialize() -> void:
 					push_warning("snapshot %s: screen could not be opened" % screen)
 					continue
 				await _frames(SETTLE_FRAMES)
-				# Maaack's start-up restores a saved desktop window size, so set ours again.
+				# Screens may change the window as they open, so set ours again.
 				await _resize(size)
 				var image := root.get_texture().get_image()
 				var file := out.path_join("%s_%dx%d_%s.png" % [style, size.x, size.y, screen])
@@ -165,8 +165,6 @@ func _show_main_menu() -> bool:
 	return true
 
 
-func _show_level_select() -> bool:
-	return await _open(Screens.LEVEL_SELECT)
 
 
 func _show_game() -> bool:

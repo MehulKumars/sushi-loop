@@ -37,16 +37,23 @@ const RIM_COLORS: Array[Color] = [
 ]
 const RIM_STYLES: Array[Rim] = [Rim.SOLID, Rim.DASHED, Rim.DOUBLE, Rim.SOLID, Rim.DASHED, Rim.DOUBLE, Rim.SOLID]
 
-## Each chapter's restaurant: name, its twist (shown when the chapter opens), belt band, steel rail,
-## counter wood, its grain, the noren curtain on the home screen.
+## Each chapter's restaurant: name, belt band, steel rail, counter wood, its grain, the noren
+## curtain on the home screen. Chapters cycle through them; a return visit gets a numeral.
 const SHOPS: Array[Dictionary] = [
-	{"name": "Corner Stall", "twist": "Take plates from the gold window and pack each bento with three of a kind.", "belt": Color("262B40"), "rail": Color("C7CED8"), "wood": Color("E9D9BD"), "grain": Color("CDB28A"), "noren": Color("1F3F6B")},
-	{"name": "Harbour Bar", "twist": "More dishes ride the belt, and the loops grow longer.", "belt": Color("1C3A45"), "rail": Color("BFD3D6"), "wood": Color("EEE2CC"), "grain": Color("CFBB98"), "noren": Color("24676B")},
-	{"name": "Lantern Alley", "twist": "All seven dishes. Some nights the window is only two plates wide.", "belt": Color("3A2433"), "rail": Color("D8C7BF"), "wood": Color("E3C9A6"), "grain": Color("C09A6C"), "noren": Color("9E3A1E")},
-	{"name": "Tea Garden", "twist": "A two-plate window all chapter: fewer choices, so each one counts.", "belt": Color("24382B"), "rail": Color("C9D4C2"), "wood": Color("E8DDB6"), "grain": Color("C7B585"), "noren": Color("4F7A3A")},
-	{"name": "Snow Lodge", "twist": "One bento open at a time. The counter has more room to help.", "belt": Color("2B3442"), "rail": Color("D5DCE6"), "wood": Color("F0E8DC"), "grain": Color("D0BFA6"), "noren": Color("51657E")},
-	{"name": "Golden Counter", "twist": "No peeking: the next bentos stay hidden until they open.", "belt": Color("1E1B1F"), "rail": Color("E1C98F"), "wood": Color("EBD3A6"), "grain": Color("C7A26A"), "noren": Color("8C5F12")},
+	{"name": "Corner Stall", "belt": Color("262B40"), "rail": Color("C7CED8"), "wood": Color("E9D9BD"), "grain": Color("CDB28A"), "noren": Color("1F3F6B")},
+	{"name": "Harbour Bar", "belt": Color("1C3A45"), "rail": Color("BFD3D6"), "wood": Color("EEE2CC"), "grain": Color("CFBB98"), "noren": Color("24676B")},
+	{"name": "Lantern Alley", "belt": Color("3A2433"), "rail": Color("D8C7BF"), "wood": Color("E3C9A6"), "grain": Color("C09A6C"), "noren": Color("9E3A1E")},
+	{"name": "Tea Garden", "belt": Color("24382B"), "rail": Color("C9D4C2"), "wood": Color("E8DDB6"), "grain": Color("C7B585"), "noren": Color("4F7A3A")},
+	{"name": "Snow Lodge", "belt": Color("2B3442"), "rail": Color("D5DCE6"), "wood": Color("F0E8DC"), "grain": Color("D0BFA6"), "noren": Color("51657E")},
+	{"name": "Golden Counter", "belt": Color("1E1B1F"), "rail": Color("E1C98F"), "wood": Color("EBD3A6"), "grain": Color("C7A26A"), "noren": Color("8C5F12")},
+	{"name": "Night Market", "belt": Color("2A2440"), "rail": Color("CFC6E0"), "wood": Color("E6D7C3"), "grain": Color("C4AE8E"), "noren": Color("5B3E8C")},
+	{"name": "Cherry Terrace", "belt": Color("3B2530"), "rail": Color("E3C6CF"), "wood": Color("F0DFD0"), "grain": Color("D1B39A"), "noren": Color("A8405F")},
+	{"name": "Station Kiosk", "belt": Color("263238"), "rail": Color("C9D1D4"), "wood": Color("E4DCCB"), "grain": Color("C2B497"), "noren": Color("3D6E8F")},
+	{"name": "Maple Inn", "belt": Color("3A2A22"), "rail": Color("DCC7B0"), "wood": Color("EAD2B0"), "grain": Color("C9A276"), "noren": Color("A0501C")},
+	{"name": "Bamboo Grove", "belt": Color("213528"), "rail": Color("C4D6C0"), "wood": Color("E9E3C4"), "grain": Color("C9BE8C"), "noren": Color("4E7A30")},
+	{"name": "Rooftop Counter", "belt": Color("1E2433"), "rail": Color("D4D9E3"), "wood": Color("EFE6D8"), "grain": Color("CDBFA8"), "noren": Color("A8741A")},
 ]
+const NUMERALS: Array[String] = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
 
 
 static func rim_color(type: int) -> Color:
@@ -61,6 +68,13 @@ static func type_name(type: int) -> String:
 	return NAMES[type] if type >= 0 and type < NAMES.size() else "?"
 
 
-## The restaurant of 1-based `chapter` (the list repeats if there are more chapters).
+## The restaurant of 1-based `chapter`: its colours, its name ("Corner Stall II" on the second
+## visit) and its twist line (SushiChapters).
 static func shop(chapter: int) -> Dictionary:
-	return SHOPS[posmod(chapter - 1, SHOPS.size())]
+	chapter = maxi(chapter, 1)
+	var out: Dictionary = SHOPS[(chapter - 1) % SHOPS.size()].duplicate()
+	var visit := (chapter - 1) / SHOPS.size()
+	if visit > 0:
+		out.name = "%s %s" % [out.name, NUMERALS[mini(visit, NUMERALS.size() - 1)]]
+	out.twist = SushiChapters.text(chapter)
+	return out

@@ -31,19 +31,19 @@ core/                  Template systems shared by every game (ours)
   seed_service.gd      Stable SHA-256 seeds
   save_store.gd        Versioned JSON save
   progress.gd          Stars, unlocks, coins, purchases, daily streak (uses SaveStore)
-  settings.gd          Volume, vibration, reduce motion
+  settings.gd          Volume, vibration, reduce motion (user://settings.cfg)
+  audio/sound.gd       Autoload Sound: sound effects, button clicks, music with crossfades
   feel/                Juice (tweens), Haptics, hit_flash.gdshader
   ui/                  The UI kit: autoload UI, Screen, Modal, layout containers, widgets,
-                       styles/ (5 UIStyle resources), themes/ (built), fonts/, icons/
+                       styles/ (the sushi UIStyle), themes/ (built), fonts/ (Nunito), icons/
   dev_tools.gd         Autoload DevTools: debug-only console commands
 ui/                    Screens (ui/screens/) and popups (ui/popups/) of the game. Yours to edit
-scenes/                Maaack's loading screen (for SceneLoader, heavy scenes only)
-assets/template_icon/  Placeholder app icon (replace per game)
+assets/icon/           App icons (made by tools/make_icon.gd)
 game/, data/           (create per game) gameplay code and baked level data
 tests/                 GUT unit tests (test_*.gd)
 tools/                 check.ps1, snapshots, build_theme.gd, scene_edit.gd, hooks/ (Claude Code auto-check)
-addons/                Vendored plugins. Never edit.
-.claude/               Claude Code settings (hook) and project skills
+addons/                Vendored plugins (GUT, LimboConsole). Never edit.
+.claude/               Claude Code settings (hook)
 docs/                  These guides
 ```
 
@@ -74,12 +74,10 @@ Defined in `project.godot`, in this order:
 
 | Autoload | Source | Role |
 |---|---|---|
-| `SceneLoader` | Maaack | Scene changes with a loading screen |
-| `ProjectMusicController` | Maaack | Music blending between scenes |
-| `ProjectUISoundController` | Maaack | Button and UI sounds |
 | `LimboConsole` | addon | The in-game console (disabled in release builds) |
 | `Events` | `core/events.gd` | Signal bus |
 | `Services` | `core/services/services.gd` | Service hub |
+| `Sound` | `core/audio/sound.gd` | Sound effects, button clicks and music (keeps playing under pause menus) |
 | `AppLifecycle` | `core/app_lifecycle.gd` | Lifecycle and feel settings (needs `Events`) |
 | `UI` | `core/ui/ui.gd` | Screen changes, popups and Back, toasts, styles, button feel (needs the above) |
 | `DevTools` | `core/dev_tools.gd` | Console commands (needs all of the above; frees itself in release) |
@@ -120,9 +118,12 @@ Services.analytics.log_event("first_win", {"level": 1})
 - Turns `NOTIFICATION_APPLICATION_PAUSED / RESUMED` and `NOTIFICATION_WM_GO_BACK_REQUEST` into
   `Events` signals. `project.godot` sets `application/config/quit_on_go_back=false`, so Back no
   longer quits the app.
-- `apply_settings()` reads `GameSettings/ReduceMotion` and `GameSettings/Haptics` from Maaack's
-  `PlayerConfig` (`user://player_config.cfg`) and sets `Juice.motion_scale` and `Haptics.enabled`.
-  It runs at start, on resume, and when the Settings toggles change (through `Settings`).
+- `apply_settings()` reads `Settings.reduce_motion()` and `Settings.haptics()` and sets
+  `Juice.motion_scale` and `Haptics.enabled`. It runs at start, on resume, and when the Settings
+  toggles change (through `Settings`). At start it also restores the saved volumes
+  (`Settings.apply_audio()` sets the Music and SFX buses).
+- `Settings` (`core/settings.gd`) keeps its own ConfigFile, `user://settings.cfg`: volumes in the
+  `audio` section, haptics and reduce motion in `feel`. A missing file or key means the default.
 - **Back on Android:** Godot delivers the Back button as a `KEY_BACK` key event plus the
   go-back notification. `project.godot` maps `KEY_BACK` to `ui_cancel` (next to Escape), so popups
   and screens handle Back, Escape and the gamepad the same way (see [UI_KIT.md](UI_KIT.md)).
@@ -157,8 +158,8 @@ Tune per game in [CUSTOMIZING.md](CUSTOMIZING.md).
 `make_seed(parts, gen_version) -> int` and `make_rng(parts, gen_version) -> RandomNumberGenerator`.
 SHA-256 based, so the same parts give the same seed on every machine; whole floats from JSON
 (`3.0`) hash like ints. Godot's RNG algorithm may change between engine versions, so **bake shipped
-levels to data files** and only generate disposable content at runtime (see the
-`level-generation` skill).
+levels to data files** and only generate disposable content at runtime (this game's pipeline is in
+[SUSHI_LOOP.md](SUSHI_LOOP.md#levels)).
 
 ### SaveStore (`core/save_store.gd`)
 `save_data(data: Dictionary, path := "user://save.json") -> Error`, `load_data(path) -> Dictionary`,
@@ -181,10 +182,22 @@ scripts. Tests point `Progress.path` at a temporary file. Its re-read function i
 - `hit_flash.gdshader`: set `flash` once with `set_shader_parameter`, then tween
   `"shader_parameter/flash"` from 1 to 0. One material per flashing node.
 
+### Sound (`core/audio/sound.gd`)
+- `Sound.play(id, pitch, volume_db)` plays `assets/audio/sfx/<id>.wav`, or one of its recorded
+  variants `id_1.wav`, `id_2.wav`... picked at random (never the same one twice in a row).
+  `play_step(id, semitones)` plays it a number of semitones higher, for combo chains.
+- Every button press plays a soft click; opt a button out with `button.set_meta(&"ui_sound", false)`.
+- Music: `play_playlist(paths, loops, rotate_seconds)`, `stop_music()`, `duck(seconds, depth_db)`
+  (lowers the music under a fanfare). It plays on two `AudioStreamPlayer`s of its own and
+  crossfades between tracks, so music carries on across screen changes.
+- `process_mode` is `ALWAYS`: clicks and music keep playing while a menu pauses the game.
+- Effects go to the SFX bus and music to the Music bus, so the Settings volumes apply. Sushi Loop
+  calls it through `SushiSfx`.
+
 ### UI kit (`core/ui/`, `ui/`)
-Five styles (`core/ui/styles/*.tres`, built into `core/ui/themes/` by `tools/build_theme.gd`),
-the `UI` autoload, `Screen` and `Modal` base classes, responsive containers, widgets and the game's
-fourteen screens and popups. Everything is in [UI_KIT.md](UI_KIT.md).
+One style, `sushi` (`core/ui/styles/sushi.tres`, built into `core/ui/themes/sushi.tres` by
+`tools/build_theme.gd`), the `UI` autoload, `Screen` and `Modal` base classes, responsive
+containers, widgets and the game's nine screens and popups. Everything is in [UI_KIT.md](UI_KIT.md).
 
 ### DevTools (`core/dev_tools.gd`)
 Debug builds only. Open the console with `` ` `` on PC or a three-finger tap on a phone.
@@ -205,10 +218,11 @@ to `set_seed` and `skip_level` through `Events.debug_command`.
 | Strict ad rules | A game living on organic installs depends on day-1 retention; Play bans ads at level start or during play |
 | GitHub, one repo per game | Unlimited private repos and template repos on the free plan |
 | No AI-generated assets | Studio rule; player sentiment in paying markets is negative |
-| Own UI kit instead of Maaack's menus | Maaack's menus are desktop-first (narrow centred buttons, tabs, small popups); the kit is built for thumbs, notches and tablets, and every screen is checked by tests |
-| Styles as resources plus a builder | One Inspector-editable file per style; the builder guarantees every component exists in every style, and tests check every style's contrast and touch sizes |
+| Own UI kit instead of Maaack's menus | The template started on Maaack's Game Template, whose menus are desktop-first (narrow centred buttons, tabs, small popups); the kit is built for thumbs, notches and tablets, and every screen is checked by tests. Maaack's addons are removed from this game |
+| Own settings file and music players | `Settings` keeps `user://settings.cfg` and `Sound` crossfades music itself, so no addon is needed for either |
+| Styles as resources plus a builder | One Inspector-editable file per style; the builder guarantees every component exists in every style, and tests check every style's contrast and touch sizes. Sushi Loop ships one style, `sushi` |
 | SVG icons and switch art as `DPITexture` | Sharp at any screen density without shipping several bitmap sizes |
 | Back key mapped to `ui_cancel` | One code path for Android Back, Escape and gamepads; popups get it first |
 | No `override.cfg` | Godot applies it on the PC but it is not exported, so the PC and the phone would differ |
-| Own splash and icon, credits as text | The launch shows the game, not the tools; Godot and Maaack are credited in the credits with their full licence texts, which MIT requires |
+| Own splash and icon, credits as text | The launch shows the game, not the tools; the credits screen reads `ATTRIBUTION.md` (with its own small markdown reader) and adds Godot's full licence text and its third-party parts, which MIT requires |
 | TouchScrollContainer for lists | Godot's ScrollContainer only scrolls on touch where no control takes the press, so button and text lists felt stuck on phones (found in a device test) |

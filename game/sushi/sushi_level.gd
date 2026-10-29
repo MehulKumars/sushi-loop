@@ -1,12 +1,16 @@
 class_name SushiLevel
 extends RefCounted
-## One Sushi Loop level as baked in data/levels/sushi_v1.json: the belt (a plate type per slot, -1
+## One Sushi Loop level as baked in data/levels/sushi_v2.json: the belt (a plate type per slot, -1
 ## for empty), the bento queue and the knobs (open bentos, window, counter, queue preview), plus
-## the generator's ratings. Rules: docs/SUSHI_LOOP.md.
+## the generator's ratings. Rules: docs/SUSHI_LOOP.md. In the file the belt and queue are short
+## strings ("01.2" = types 0, 1, an empty slot, type 2), so a thousand levels stay small.
 
 const MIN_BELT: int = 12
 const MAX_BELT: int = 32
 const TYPE_COUNT: int = 7
+## Character per plate type in the baked strings; EMPTY marks an empty belt slot.
+const DIGITS: String = "0123456"
+const EMPTY: String = "."
 
 var id: int = 0
 var belt := PackedInt32Array()
@@ -45,6 +49,9 @@ static func from_dict(d: Dictionary) -> SushiLevel:
 	level.id = int(d.get("id", 0))
 	level.belt = _ints(d.get("belt", []))
 	level.bentos = _ints(d.get("bentos", []))
+	if d.has("rate"):
+		level.greedy = float(d.rate[0])
+		level.careful = float(d.rate[1])
 	level.open = int(d.get("open", 2))
 	level.window = int(d.get("window", 3))
 	level.counter = int(d.get("counter", 5))
@@ -52,18 +59,24 @@ static func from_dict(d: Dictionary) -> SushiLevel:
 	level.role = str(d.get("role", "easy"))
 	level.par = int(d.get("par", -1))
 	level.star_peak = int(d.get("star_peak", level.counter))
-	level.greedy = float(d.get("greedy", -1.0))
-	level.careful = float(d.get("careful", -1.0))
+	if not d.has("rate"):
+		level.greedy = float(d.get("greedy", -1.0))
+		level.careful = float(d.get("careful", -1.0))
 	level.seed = int(d.get("seed", 0))
 	return level
 
 
-func to_dict() -> Dictionary:
-	return {
-		"id": id, "belt": Array(belt), "bentos": Array(bentos), "open": open, "window": window,
-		"counter": counter, "preview": preview, "role": role, "par": par, "star_peak": star_peak,
-		"greedy": snappedf(greedy, 0.001), "careful": snappedf(careful, 0.001), "seed": seed,
+## Belt and queue as strings, the bot ratings as "rate": [greedy, careful], and the seed unless
+## `with_seed` is off (the baked file leaves it out: the game never needs it).
+func to_dict(with_seed: bool = true) -> Dictionary:
+	var out := {
+		"id": id, "role": role, "belt": _text(belt), "bentos": _text(bentos), "open": open,
+		"window": window, "counter": counter, "preview": preview, "par": par, "star_peak": star_peak,
+		"rate": [snappedf(greedy, 0.005), snappedf(careful, 0.005)],
 	}
+	if with_seed:
+		out.seed = seed
+	return out
 
 
 ## "" when the level can be played: sizes in range and 3 plates of each type per bento.
@@ -111,9 +124,20 @@ func type_count() -> int:
 	return seen.size()
 
 
+## Types from an array of ints or a baked string ("01.2").
 static func _ints(values: Variant) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	if values is Array:
 		for v: Variant in values:
 			out.append(int(v))
+	elif values is String:
+		for c: String in values:
+			out.append(-1 if c == EMPTY else DIGITS.find(c))
+	return out
+
+
+static func _text(types: PackedInt32Array) -> String:
+	var out := ""
+	for t in types:
+		out += EMPTY if t < 0 else DIGITS[t]
 	return out

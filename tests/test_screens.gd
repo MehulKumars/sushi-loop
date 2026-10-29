@@ -8,7 +8,7 @@ extends GutTest
 const TOUCH := 96.0
 const SIZES: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280)]
 const PAGES: Array[String] = [
-	Screens.SPLASH, Screens.MAIN_MENU, Screens.LEVEL_SELECT, Screens.GAME, Screens.CREDITS,
+	Screens.SPLASH, Screens.MAIN_MENU, Screens.GAME, Screens.CREDITS,
 	Screens.PAUSE, Screens.RESULTS, Screens.SETTINGS, Screens.CONFIRM,
 ]
 
@@ -34,16 +34,38 @@ func test_every_page_fits_every_size() -> void:
 			assert_eq(problems, [] as Array[String], "%s at %dx%d" % [path.get_file(), size.x, size.y])
 
 
-func test_level_select_shows_every_level() -> void:
+## Home shows the next level's chapter as a road of plates: five won, the next one, four locked.
+func test_home_road_shows_the_chapter() -> void:
 	var viewport := _viewport(Vector2i(720, 1280))
-	var page := (load(Screens.LEVEL_SELECT) as PackedScene).instantiate()
+	var page := (load(Screens.MAIN_MENU) as PackedScene).instantiate()
 	viewport.add_child(page)
 	await _settle()
-	var tiles := page.find_children("*", "LevelTile", true, false)
-	assert_eq(tiles.size(), Progress.LEVEL_COUNT_DEFAULT)
-	var unlocked := tiles.filter(func(tile: Node) -> bool: return not (tile as LevelTile).locked)
-	assert_eq(unlocked.size(), 6, "five won levels plus the next one")
+	var road := page.find_children("*", "SushiLevelRoad", true, false)
+	assert_eq(road.size(), 1)
+	var plates := road[0].get_children()
+	assert_eq(plates.size(), SushiLevels.CHAPTER)
+	var states: Array[int] = []
+	for plate: Node in plates:
+		states.append(int(plate.get(&"state")))
+	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.WON), 5)
+	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.NEXT), 1)
+	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.LOCKED), 4)
+	assert_eq((page.get_node(^"%PlayButton") as Button).text, "Level 6")
 	viewport.free()
+
+
+func test_a_new_player_starts_in_level_one() -> void:
+	var before := Progress.path
+	Progress.path = "user://test_first_launch.json"
+	Progress.reset()
+	var script: GDScript = load("res://ui/screens/splash.gd")
+	assert_eq(script.call(&"first_screen"), Screens.GAME)
+	assert_eq(Screens.level, 1)
+	Progress.record_win(1, 3)
+	assert_eq(script.call(&"first_screen"), Screens.MAIN_MENU)
+	Progress.reset()
+	Progress.path = before
+	Progress.load_from_disk()
 
 
 func test_the_doom_card_offers_step_back_retry_and_keep_going_at_every_size() -> void:

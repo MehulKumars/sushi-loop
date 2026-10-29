@@ -1,62 +1,50 @@
 # UI kit
 
-The template ships a complete set of mobile game screens in **five visual styles**. Every screen
-is built once from theme types and tokens, so switching the style restyles all of them. Layouts
-adapt to every phone shape, foldables and tablets (portrait).
-
-![The main menu in all five styles](images/styles.png)
+Sushi Loop's screens and popups share **one visual style, `sushi`**. Every screen is built once
+from theme types and tokens, so a change to the style restyles all of them. Layouts adapt to every
+phone shape, foldables and tablets (portrait).
 
 ## Screens and popups
 
 | | File | What it does |
 |---|---|---|
-| Splash | `ui/screens/splash.tscn` | The game's name on the style background for about a second after Android's launch screen (tap to skip); put your studio logo in `%Logo` |
-| Main menu | `ui/screens/main_menu.tscn` | Title, big **Play** button (next unbeaten level) and quick links in the thumb zone, coins, settings. Back asks before quitting. Opens the daily reward once per launch when it can be claimed |
-| Level select | `ui/screens/level_select.tscn` | Grid of levels with best stars and locks; 4 columns on phones, up to 6 on tablets; the next level is highlighted and scrolled into view |
-| Game | `ui/screens/game.tscn` | A real HUD (pause, level, coins, goal bar, booster buttons) around a placeholder board. Replace the board with your game |
-| Shop | `ui/screens/shop.tscn` | Remove-ads card, six coin packs, free coins for a rewarded video |
-| Credits | `ui/screens/credits.tscn` | Built from `ATTRIBUTION.md` (your game first, then what it is made with), followed automatically by the licence notices the shipped code requires. Links are plain text |
-| UI kit gallery | `ui/screens/ui_gallery.tscn` | Every component on one page with a live style switcher (Settings > Open the UI kit gallery, debug builds) |
-| Pause | `ui/popups/pause_popup.tscn` | Resume, restart, settings, main menu, quick music/sound/vibration toggles. Pauses the game |
-| Results | `ui/popups/results_popup.tscn` | Win: stars pop in, coins count up, Next. Lose: "+5 moves (watch ad)", Retry, Home. Back does not dismiss it |
-| Settings | `ui/popups/settings_popup.tscn` | Music and sound volume, vibration, reduce motion, credits, privacy policy, restore purchases, reset progress, version; style picker in debug builds |
-| Daily reward | `ui/popups/daily_reward_popup.tscn` | Seven-day streak, day 7 is a gift; missing a day restarts it |
+| Splash | `ui/screens/splash.tscn` | The app icon's plate and the game's name for 0.6 s after Android's launch screen (tap to skip). A player who has not won a level yet goes straight into level 1; everyone else goes home |
+| Home | `ui/screens/main_menu.tscn` | The next level's chapter (its restaurant name and twist) as a road of plates (`SushiLevelRoad`): won plates show their stars and replay on a tap, the next level is a big gold plate, a tapped locked plate only wobbles, hard levels carry a Hard or Super hard tag. Arrows page back through earlier chapters. Top bar: coins, a gift button whose badge counts the stars to the next star gift ("!" when one waits), settings. One big Play button, "Level N", in the thumb zone. Back asks before quitting |
+| Game | `ui/screens/game.tscn` | One Sushi Loop level (`SushiBoard`) and its HUD: pause, level, coins, bentos packed and the stars on course; Undo and Hint in the bottom corners; the doom card once the level can no longer be won. Rules in [SUSHI_LOOP.md](SUSHI_LOOP.md) |
+| Credits | `ui/screens/credits.tscn` | Built from `ATTRIBUTION.md` (the game first, then what it is made with; a small markdown reader turns it into BBCode), followed automatically by the licence notices the shipped code requires. Links are plain text |
+| Pause | `ui/popups/pause_popup.tscn` | Resume, restart, settings, Home, quick music/sound/vibration toggles. Pauses the game |
+| Results | `ui/popups/results_popup.tscn` | Win: stars pop in, coins count up, ×2 coins for a rewarded video, Next level. Lose ("Counter full"): two more counter slots for coins or a video, Retry, Home. Back does not dismiss it |
+| Settings | `ui/popups/settings_popup.tscn` | Music and sound volume, vibration, reduce motion, credits, privacy policy, reset progress, version |
+| Reward | `ui/popups/reward_popup.tscn` | A card for a moment worth it: a new dish on the menu, a star gift, a finished chapter, the welcome to a new chapter |
 | Confirm | `ui/popups/confirm_popup.tscn` | Yes/no question, `await UI.confirm(...)` |
-| Ranks | `ui/popups/ranks_popup.tscn` | The player's stars, levels and coins, and a star leaderboard with their row highlighted (sample players until Google Play Games is connected; then Google's own screen opens instead) |
 
-The flow: Android launch screen (app icon) → splash → main menu → (level select) → game → results → next / retry / home.
+The flow: Android launch screen (app icon) → splash → level 1 for a player with no win yet, home
+for everyone else → game → results → Next (straight into the next level) / Retry / Home.
 All paths are in `ui/screens.gd` (`Screens.MAIN_MENU`, `Screens.PAUSE`, ...).
 
-## The five styles
+## The style
 
-| Style | Look | Fonts | Good for |
-|---|---|---|---|
-| `sleek_dark` (default) | Calm dark slate, periwinkle accent, soft shadows, dot pattern | Outfit | Puzzle, zen, strategy |
-| `candy_casual` | Bright blue-purple, chunky 3D buttons with outlined text, cream cards, moving stripes | Fredoka | Casual, match-3, kids-adjacent (13+) |
-| `neon_arcade` | Synthwave grid, glowing outline buttons that fill when pressed | Orbitron titles, Exo 2 text | Arcade, rhythm, action |
-| `cozy_paper` | Warm cream paper grain, terracotta accent, soft edges | Nunito | Word, cozy, card, relaxing |
-| `pixel_retro` | Square corners, hard borders, checker pattern | Pixelify Sans | Retro, platformer, roguelike |
+| Style | Look | Font |
+|---|---|---|
+| `sushi` | Cream porcelain, ink lacquer and gold: calm, warm, adult. Chunky buttons, a still paper-grain background | Nunito (black for titles, semi-bold for text) |
 
-**Pick your game's style:** Project Settings > GUI > Theme > Custom → `res://core/ui/themes/<id>.tres`.
-That is the default every screen uses. `UI.apply_style(&"candy_casual")` switches at runtime (the
-debug-only picker in Settings and the gallery use it, and remember the choice in
-`user://player_config.cfg`). To let players choose, turn on `show_style_picker` in
-`settings_popup.gd`.
+It is the project theme (Project Settings > GUI > Theme > Custom → `res://core/ui/themes/sushi.tres`),
+so every screen uses it. Only the Nunito font ships (`core/ui/fonts/`). `UI.apply_style(id)` can
+still swap the theme at runtime, but nothing is saved and there is no style picker: Sushi Loop has
+one look.
 
-**Leaving unused styles out of a release:** the five fonts add about 0.5 MB to the APK. Delete the
-styles you do not use (their `core/ui/styles/<id>.tres`, `core/ui/themes/<id>.tres` and fonts), then
-run the tests.
+## Adding a style (if ever needed)
 
-## Making your own style
-
-1. Duplicate a file in `core/ui/styles/` and give it a new `id`. Edit it in the Inspector: colours,
+1. Duplicate `core/ui/styles/sushi.tres` and give it a new `id`. Edit it in the Inspector: colours,
    fonts (any `.ttf` with an open licence; log it in `ASSETS_LICENSES.md`), button shape (Flat,
    Chunky, Outline, Pixel), corner radii, shadow, background pattern.
 2. Build the themes: `godot --headless --path . -s tools/build_theme.gd`
 3. Check it: `powershell -ExecutionPolicy Bypass -File tools/check.ps1`. `test_theme.gd` fails if any
-   text is below WCAG AA contrast or any control is under 48 dp.
+   text is below WCAG AA contrast or any control is under 48 dp. It and `test_ui.gd` also expect
+   `sushi` to be the only style, so a second style means changing those two checks on purpose.
 4. Look at it: `powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 -Styles your_id`
    and open `build/snapshots/your_id_*_contact.png`.
+5. To make it the game's look, point Project Settings > GUI > Theme > Custom at its theme.
 
 `tools/build_theme.gd` is the design system: it turns a style's tokens into every button, card,
 slider and switch. Edit it to change how all styles draw a component. Hand edits to the generated
@@ -101,11 +89,12 @@ Font sizes: `small`, `body`, `header`, `title`. Fonts: `display`, `body`.
 | `StarRating`, `CurrencyPill`, `LevelTile` | `core/ui/widgets/` | Stars (with `reveal()`), counters (with `set_value()` count-up), level tiles |
 | `Icons` | `core/ui/icons.gd` | 38 Material Symbols icons, e.g. `Icons.PLAY`, `Icons.COIN` |
 | `Progress` | `core/progress.gd` | Stars per level, unlocks, coins, purchases, daily streak (JSON save) |
-| `Settings` | `core/settings.gd` | Volume, vibration, reduce motion (read and save) |
+| `Settings` | `core/settings.gd` | Volume, vibration, reduce motion (read and save, in `user://settings.cfg`) |
+| `Sound` autoload | `core/audio/sound.gd` | Sound effects, a click on every button, music with crossfades (see [ARCHITECTURE.md](ARCHITECTURE.md)) |
 
 ## Adding a screen
 
-1. Duplicate `ui/screens/shop.tscn` (and its script) as a starting point. The layout every screen
+1. Duplicate `ui/screens/credits.tscn` (and its script) as a starting point. The layout every screen
    uses:
    ```
    YourScreen (Control, full rect, script extends Screen)
@@ -140,15 +129,16 @@ Font sizes: `small`, `body`, `header`, `title`. Fonts: `display`, `body`.
   camera hole at the top centre and a 48 px gesture bar (64 and 32 px on the canvas).
 - **Wide screens:** content in a `MaxWidthContainer`; grids in an `AdaptiveGridContainer`.
 - **Text:** 32 px body (16 dp), 26 px minimum for captions; numbers use `ValueLabel`.
-- **Colour:** never the only signal (switches also change knob size, locked levels show a lock).
+- **Colour:** never the only signal (switches also change knob size; on the home road won plates
+  show their stars and the next level is the bigger plate).
 
 ## Back button
 
 Android Back arrives as the `ui_cancel` action (the Back key is mapped in Project Settings > Input
 Map, next to Escape and the gamepad button). Order of handling:
 1. The top popup closes if it is `dismissible` (the results popup is not; the player must choose).
-2. Otherwise the current `Screen.on_back()` runs: level select, shop, credits and gallery go to the
-   main menu, the game opens pause, the main menu asks before quitting.
+2. Otherwise the current `Screen.on_back()` runs: credits goes home, the game opens pause, home
+   asks before quitting, the splash skips ahead.
 
 `Events.back_requested` is still emitted for analytics or custom code.
 
@@ -163,10 +153,10 @@ background drift off; the haptic tick follows the Vibration setting. Opt a butto
 
 | Check | How |
 |---|---|
-| Contrast and touch sizes of every style | `tests/test_theme.gd` (part of `tools/check.ps1`) |
+| Contrast and touch sizes of the style | `tests/test_theme.gd` (part of `tools/check.ps1`) |
 | Every screen at 3 sizes: size, on-screen, no overlap | `tests/test_screens.gd` |
-| Look at it | `tools/snapshots.ps1` writes every screen × style × size to `build/snapshots/`, plus one contact sheet per style and size. Flags: `-Styles all`, `-Sizes 720x1600`, `-Only "main_menu,pause"`, `-Inset "0,64,0,32"` (fake notch and gesture bar) |
-| On the phone | Settings > Open the UI kit gallery; console commands `safe_area`, `display_info`, `fps` |
+| Look at it | `tools/snapshots.ps1` writes every screen × size to `build/snapshots/` (`sushi_<w>x<h>_<screen>.png`), plus one contact sheet per size. It renders the full phone canvas in a small window in the middle of the screen (`tools/test_window.gd`). Flags: `-Sizes 720x1600`, `-Only "main_menu,pause"`, `-Inset "0,64,0,32"` (fake notch and gesture bar), `-Styles <id>` |
+| On the phone | Console commands `safe_area`, `display_info`, `fps` |
 
 Snapshots use a separate demo save, so your PC progress is untouched.
 
@@ -175,7 +165,3 @@ Snapshots use a separate demo save, so your PC progress is untouched.
 - No in-game text-size setting yet (word games should add one).
 - Screen readers: Godot's Android TalkBack support lands in Godot 4.8.
 - Text is not set up for translation (strings are in the scenes and scripts).
-- The pixel font is drawn smoothed: a canvas scaled to the phone's resolution cannot line up with a
-  pixel grid, and unsmoothed it turned "3" and "5" into "8" and "S".
-- Prices in the shop are placeholders; real ones come from Google Play Billing in the player's
-  currency (see [SERVICES.md](SERVICES.md)).

@@ -4,9 +4,10 @@ Sushi Loop is game 2 of the studio plan, started from our mobile game template o
 economy and the level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. No shop, daily
 reward, ranks or purchases; coins pay for boosters, and opt-in rewarded videos (continue, ×2 coins, a hint or undo when
 short of coins) go through `Services.ads` (mocks until AdMob is wired). Template core changes made for this game: the
-`sushi` style as the project theme, autoload **Sound** (`core/audio/sound.gd`, from Halves; effects may have recorded
-variants `id_1.wav`, `id_2.wav`... picked at random), `Progress.count()`/`set_count()` (named counts: sessions, gifts,
-dishes seen, tips), `Progress.LEVEL_COUNT_DEFAULT` = 60.
+`sushi` style as the only style, autoload **Sound** (`core/audio/sound.gd`, from Halves; effects may have recorded
+variants `id_1.wav`, `id_2.wav`... picked at random; music on its own two players), `Progress.count()`/`set_count()`
+(named counts: sessions, gifts, dishes seen, tips), `Progress.LEVEL_COUNT_DEFAULT` = 1000. Maaack's PC-oriented
+template addons were removed on 2026-10-30 (Settings keeps its own `user://settings.cfg`).
 
 Godot **4.7.2** (pinned) · GDScript only · 2D portrait, 720 px wide canvas · Android first · Compatibility renderer.
 The human owns fun, feel, art, balance, the store page and release decisions. Claude builds code with a checkable answer.
@@ -22,16 +23,20 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
   - `ui/` the UI kit core: autoload **UI** (`ui.gd`: goto, open, confirm, toast, apply_style, button feel, focus rings),
     `screen.gd` (base for screens), `modal.gd` (base for popups), `styled_background.gd`, `safe_area_margin.gd`,
     `max_width_container.gd`, `adaptive_grid_container.gd`, `touch_scroll_container.gd`, `widgets/` (StarRating, CurrencyPill, LevelTile), `icons.gd`,
-    `styles/*.tres` (5 UIStyle resources), `themes/*.tres` (built from styles; never edit by hand), `fonts/`, `icons/`.
+    `styles/sushi.tres` (the UIStyle), `themes/sushi.tres` (built from it; never edit by hand), `fonts/` (Nunito), `icons/`.
   - `dev_tools.gd` autoload **DevTools**: debug-only console commands (`fps`, `log_input`, `display_info`, `safe_area`...).
 - `ui/` the game's screens (`ui/screens/`) and popups (`ui/popups/`); paths in `ui/screens.gd` (`Screens.*`). Edit per game.
   `ui/screens/game.gd` hosts the gameplay: replace its %Board and call `finish(won, stars)`.
-- `scenes/loading_screens/`: Maaack's loading screen, for SceneLoader (heavy scenes only). `assets/icon/`: the app icons (made by `tools/make_icon.gd`).
+  Flow: splash → level 1 for a player with no win, else home (`main_menu`: the chapter's level road, one Play button)
+  → game → results → Next goes straight into the next level. No level select screen.
+- `assets/icon/`: the app icons (made by `tools/make_icon.gd`).
 - `game/` gameplay scenes and scripts (create per game). `data/` baked levels and configs (create per game).
   This repo: `game/sushi/` (SushiState rules, SushiSolver, SushiBot, SushiRun, SushiDoom, SushiMeta progression,
-  the board, plate, bento and art views, SushiPalette with the chapter restaurants, SushiNoren, SushiLogo),
+  SushiChapters (each chapter's twist), the board, plate, bento and art views, SushiLevelRoad (home's map of a
+  chapter), SushiPalette with the twelve restaurants, SushiNoren, SushiLogo),
   `game/kit/` (StateSolver, SolverState, Rack, PathBelt: generic, meant for the template later),
-  `data/levels/sushi_v1.json` (baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.json`),
+  `data/levels/sushi_v2.json` (1000 levels baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.gd`;
+  levels 1-60 frozen in `tools/levelgen/frozen_v1.json`),
   `assets/food/` and `assets/deco/` (Fluent Emoji 3D renders, MIT), `assets/audio/` (Kenney CC0 foley via
   `tools/audio/prepare_foley.sh`, koto cues from `tools/audio/synth_sushi_sfx.gd`, a CC0 music track),
   `ui/popups/reward_popup.*` (new dish, gift, chapter cards), `tools/sushi_playtest.gd`.
@@ -110,15 +115,16 @@ levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human
 - Run the game: `godot --path .`  · Editor: `godot --path . -e`
 - Tests only: `godot --headless --path . -s addons/gut/gut_cmdln.gd -gexit` (one file: `-gselect=test_ui`)
 - Check one script: `godot --headless --path . -s tools/hooks/check_script.gd -- res://core/events.gd`
-- Screenshots of the UI: `powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 [-Styles all] [-Sizes 720x1600] [-Only main_menu,pause] [-Inset 0,64,0,32]`
-  -> `build/snapshots/<style>_<w>x<h>_<screen>.png` and `..._contact.png`
+- Screenshots of the UI: `powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 -Styles sushi [-Sizes 720x1600] [-Only main_menu,pause] [-Inset 0,64,0,32]`
+  -> `build/snapshots/<style>_<w>x<h>_<screen>.png` and `..._contact.png`. Tool windows stay small and centred
+  (`tools/test_window.gd`) while capturing the full canvas: the human's monitor is 2560×1440.
 - Rebuild themes after editing a style: `godot --headless --path . -s tools/build_theme.gd`
 - Set scene properties: `godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/credits.tscn Safe extra_margin 24`
 - Remove scene nodes: `godot --headless --path . -s tools/scene_edit.gd -- --remove res://ui/popups/x.tscn Path/To/Node`
   (string values from PowerShell 5.1 lose their quotes: run those edits from Bash as `'"Text"'`)
-- Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last]` (about 7 min for 60; a range
-  run rewrites the CSV with only that range, so bake all before committing);
-  knob study: `tools/levelgen/bench_sushi.gd`. Ratings land in `tools/levelgen/reports/sushi_v1.csv`.
+- Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last] [--misses]` (one worker
+  process per spare core; about 25 min for all 1000; a range or `--misses` keeps the other levels as baked);
+  knob study: `tools/levelgen/bench_sushi.gd`. Ratings and the curve land in `tools/levelgen/reports/sushi_v2.csv`/`.md`.
 - Play a level for real (needs a window): `godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]`
   -> frames in `build/playtest/<mode>_<level>/`
 - A new `class_name` fails the hook ("not declared") until `godot --headless --path . --import` refreshes the cache.
@@ -138,7 +144,7 @@ levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human
   what's new, in player words). The README is the game's page: keep its screenshots (`docs/media/`) and features current.
 - Phone: `adb install -r build/game-debug.apk`, `adb exec-out screencap -p > shot.png`, Back = `adb shell input keyevent 4`,
   console = `adb shell input keyevent 68` then `adb shell input text fps` + `adb shell input keyevent 66`, logs `adb logcat -s godot`.
-- Release AAB: see the play-release skill (needs the game's release keystore).
+- Release AAB: `--export-release "Android Release AAB"` with the game's release keystore in the `GODOT_ANDROID_KEYSTORE_RELEASE_*` env vars (the human makes and keeps the keystore).
 - Version-exact API reference to search: `godot --doctool docs/api` (ignored by git)
 
 ## Google Play rules this template assumes (Oct 2026)

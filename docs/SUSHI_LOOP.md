@@ -111,40 +111,73 @@ Invariant: after every take no counter plate matches an open bento (R4.1 and R6 
 
 ## Levels
 
-Levels are generated offline, checked and baked, never generated at run time.
+Levels are generated offline, checked and baked, never generated at run time. **1000 levels in
+100 chapters of ten** (gen_version 2, `data/levels/sushi_v2.json`, about 100 KB: the belt and
+queue are short strings such as `"01.2"`).
 
-1. `tools/levelgen/sushi_plan.json` lists each level's role and knobs (types, bentos, belt length,
-   open, window, counter, preview).
+1. `tools/levelgen/sushi_plan.gd` gives each level its role, knobs (types, bentos, belt length,
+   open, window, counter, preview, spread) and band. Levels 1-60 are frozen from the first bake
+   (`tools/levelgen/frozen_v1.json`, played on phones in 0.3.0); later levels follow their
+   chapter's twists (below).
 2. The generator deals a bento queue and a belt from a seed (`SeedService`), then:
    - the solver must find a solution with the level's counter (budget-limited; unknown = reject);
-   - `par` is the smallest counter size that still solves it;
-   - a random-greedy bot (fits first, else random) and a careful bot (exit-first, preview-aware)
-     each play it 200 times; their win rates rate the level.
-3. It keeps the candidate closest to the role's target band and bakes it to
-   `data/levels/sushi_v1.json` with `gen_version`. Levels 1-2 are hand-made tutorials (level 1
-   forces the counter: its par is at least 1); level 3 is dealt with a very gentle band.
+   - `par` is the smallest counter size that still solves it (unknown = reject);
+   - a random-greedy bot (fits first, else random: a careless player) and a careful bot
+     (exit-first, preview-aware, slips one take in ten: an attentive player) each play it 200
+     times; their win rates rate the level (a quick 40-run look drops deals far outside first).
+3. It keeps the deal nearest the middle of the role's band. When no deal lands in the band, it
+   deals again with the counter one bigger and the plates in better order (too hard), or one
+   smaller and more scrambled (too easy): four rounds at most, then the nearest miss.
 4. After chapter 1, no level except a rest level may be trivial (greedy wins more than 95%), hard
    and super-hard levels must reward care (careful beats greedy by more than 0.2), and no level is
    one narrow line (careful wins at least 35%). `tests/test_sushi_levels.gd` checks the bake.
+5. `tools/levelgen/generate_sushi.gd` runs one worker process per spare CPU core (about 25 min for
+   all 1000 on 14 workers), merges them, and writes the rating CSV and a summary with the curve
+   (`tools/levelgen/reports/sushi_v2.csv`, `.md`). `--misses` bakes again only levels outside their band.
 
-Roles per 10 levels (roller-coaster sawtooth): 1-3 easy, 4 medium, 5 hard, 6 rest (a new idea at
-low stakes), 7-8 medium, 9 super-hard, 10 rest. Knobs over the game: types 2 → 7, belt 12 → 30,
-window 3 → 2, counter 6 → 4, preview 3 → 0.
+**Difficulty targets.** Pass = 0.6 × careful + 0.4 × greedy, a rough first-try pass rate for a
+typical player (to be replaced by real per-level pass rates from analytics after launch):
 
-60 levels in six chapters. Each chapter after the first three leans on one knob, so it plays
-differently without new rules:
+| Role | Greedy band | Careful band | Pass about | Tries |
+|---|---|---|---|---|
+| easy | 0.75-0.95 | 0.95-1.0 | 0.93 | 1 |
+| medium | 0.4-0.85 | 0.85-1.0 | 0.8 | 1-2 |
+| hard | 0.1-0.45 | 0.55-0.85 | 0.55 | 2 |
+| super | 0-0.2 | 0.35-0.75 | 0.4 | 2-3 |
+| rest | 0.7-1.0 | 0.95-1.0 | 0.93 | 1 |
 
-| Chapter | Levels | Twist |
+**Roles per 10 levels** (roller-coaster sawtooth). Slots 5 (hard), 6 (rest), 9 (super-hard) and
+10 (rest) never move; as players grow, easy slots turn medium and a second hard level arrives:
+
+| Chapters | Roles 1-10 | Hard + super per ten |
 |---|---|---|
-| 1 Corner Stall | 1-10 | learning the belt; 2 → 4 dishes |
-| 2 Harbour Bar | 11-20 | 5-6 dishes, longer belts |
-| 3 Lantern Alley | 21-30 | all 7 dishes; a two-plate window on some levels |
-| 4 Tea Garden | 31-40 | a two-plate window on most levels |
-| 5 Snow Lodge | 41-50 | one bento open at a time, a roomier counter |
-| 6 Golden Counter | 51-60 | the queue preview is hidden; belts up to 30 |
+| 1-10 | easy easy easy medium **hard** rest medium medium **super** rest | 2 |
+| 11-40 | easy easy medium medium **hard** rest medium **hard** **super** rest | 3 |
+| 41-100 | easy medium medium medium **hard** rest medium **hard** **super** rest | 3 |
+
+**Chapter twists** (`SushiChapters`, shown on the card that opens a chapter; the plan reads the
+same ids, so the card tells the truth). Each changes knobs, never rules:
+
+| Twist | Knobs |
+|---|---|
+| learn (ch 1) | 2 → 4 dishes, the hand-made tutorials |
+| more (ch 2) | 5-6 dishes, longer belts |
+| all (ch 3) | all 7 dishes; a two-plate window on some levels |
+| narrow | a two-plate window |
+| single | one bento open at a time, one more counter slot |
+| hidden | no queue preview |
+| long | belts of 27-32 slots |
+| dense | a full belt: no empty slots |
+| tight | one counter slot fewer, three bentos previewed |
+| mixed | each level one of the six above |
+
+Chapters 1-6: learn, more, all, narrow, single, hidden. From chapter 7 the cycle long, narrow,
+single, hidden, dense, tight, mixed repeats; from chapter 21 each chapter but a mixed one adds a
+second twist that rotates (never hidden with tight). Belts grow a step each time round (at most
+three). Hard and super-hard levels have one counter slot fewer, rest levels one more.
 
 **The reskin trap:** if the greedy bot wins more than 90% of mid-chapter levels, the moving window
-is not creating real choices. `tools/levelgen/reports/` keeps the rating CSV that answers this.
+is not creating real choices. The bake summary prints this check.
 
 ## Feel (calm ASMR, crescendo when a bento closes)
 
@@ -195,15 +228,20 @@ Each chapter is a restaurant with its own belt, rail, wood and noren colours (`S
 
 ## Progression (between levels)
 
-- **Chapters** of ten levels, each a new restaurant (look above). The home screen shows the
-  chapter, levels won and its stars; level select groups levels by chapter with "Hard" and
-  "Super hard" badges, so the sawtooth is visible ahead.
+- **First launch:** a player who has not won a level goes from the splash straight into level 1;
+  no menu first. Every later launch opens home.
+- **Chapters** of ten levels, each a restaurant: twelve looks (`SushiPalette.SHOPS`) that come round
+  again with a numeral ("Corner Stall II"). Home shows the next level's chapter as a road of
+  plates (`SushiLevelRoad`): won plates with their stars (tap to replay), the next level as the
+  big gold plate, locked plates dimmed, "Hard" and "Super hard" tags so the sawtooth is visible
+  ahead; arrows page back through earlier chapters. One big Play button starts the next level.
+  Win → Next goes straight into the next level, never through home.
 - **Welcome card:** a chapter's first level (from chapter 2) names the restaurant and its twist,
-  once (`SushiPalette.SHOPS[].twist`).
+  once (`SushiChapters.text()`).
 - **New on the menu:** the first time a dish rides the belt (from level 2) a card shows it on its
   plate, with its name and a line about it. Once per install.
 - **Star gifts:** every 15 stars opens a gift of 100 coins, right after the win that earned it (or
-  from the home screen's card).
+  from the gift button in home's top bar, whose badge counts the stars still needed).
 - **Chapter bonus:** the first win of a chapter's last level gives 100 coins and a card naming the
   next restaurant.
 - **Three-star outlook:** the HUD shows the stars this attempt is on course for; the counter

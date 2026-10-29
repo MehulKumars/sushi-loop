@@ -7,7 +7,6 @@
 [ext_resource type="Script" path="res://core/ui/widgets/currency_pill.gd" id="5_pill"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/settings.svg" id="6_settings"]
 [ext_resource type="Texture2D" path="res://core/ui/icons/play_arrow.svg" id="7_play"]
-[ext_resource type="Texture2D" path="res://core/ui/icons/grid_view.svg" id="8_grid"]
 
 [node name="MainMenu" type="Control" unique_id=1970485192]
 layout_mode = 3
@@ -73,11 +72,6 @@ layout_mode = 2
 theme_type_variation = &"IconButton"
 icon = ExtResource("6_settings")
 
-[node name="TopSpace" type="Control" parent="Safe/Column/Layout" unique_id=1471060837]
-layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 2
-
 [node name="Logo" type="VBoxContainer" parent="Safe/Column/Layout" unique_id=1915183655]
 unique_name_in_owner = true
 layout_mode = 2
@@ -100,35 +94,12 @@ text = "Pack the bentos. Mind the counter."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="MidSpace" type="Control" parent="Safe/Column/Layout" unique_id=1156924041]
-layout_mode = 2
-size_flags_vertical = 3
-size_flags_stretch_ratio = 1.6
-mouse_filter = 2
-
 [node name="PlayButton" type="Button" parent="Safe/Column/Layout" unique_id=1745651299]
 unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"HeroButton"
 text = "Play"
 icon = ExtResource("7_play")
-
-[node name="Gap" type="Control" parent="Safe/Column/Layout" unique_id=17643792]
-custom_minimum_size = Vector2(0, 24)
-layout_mode = 2
-mouse_filter = 2
-
-[node name="Links" type="GridContainer" parent="Safe/Column/Layout" unique_id=1941758828]
-layout_mode = 2
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 20
-
-[node name="LevelsButton" type="Button" parent="Safe/Column/Layout/Links" unique_id=652123130]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Levels"
-icon = ExtResource("8_grid")
 
 [node name="BottomSpace" type="Control" parent="Safe/Column/Layout" unique_id=230485823]
 custom_minimum_size = Vector2(0, 16)

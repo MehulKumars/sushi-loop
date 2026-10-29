@@ -64,14 +64,14 @@ powershell -ExecutionPolicy Bypass -File tools/check.ps1
      ```
 5. Phone logs (useful when something only breaks on the device): `adb logcat -s godot`
 
-Things to try on the phone: tap through every screen, open Settings and switch the style (debug
-builds), open the UI kit gallery, win and lose a level, press the Back button everywhere, and tap
-with three fingers at once to open the debug console.
+Things to try on the phone: tap through every screen, win and lose a level, page through the
+chapters on home, press the Back button everywhere, and tap with three fingers at once to open the
+debug console. A fresh install starts straight in level 1; home appears after the first win.
 
 ## 5. Your daily loop
 
 1. Open the game folder in VS Code and start Claude Code **in that folder** (that is what loads
-   `CLAUDE.md`, the auto-check hook and the project skills).
+   `CLAUDE.md` and the auto-check hook).
 2. Ask for one small step at a time, plan first. See [CLAUDE_CODE.md](CLAUDE_CODE.md).
 3. Play the result on PC, then on the phone.
 4. Run `tools/check.ps1`, then commit:
@@ -101,10 +101,11 @@ After that: ask Claude to explain every new script it writes, and build one smal
 with AI switched off.
 
 ## Where to go next
-- [UI_KIT.md](UI_KIT.md): the screens, the five styles, and how to add your own.
+- [SUSHI_LOOP.md](SUSHI_LOOP.md): this game's rules, 1000 levels in 100 chapters, progression and economy.
+- [UI_KIT.md](UI_KIT.md): the screens, the game's style, and how to add another.
 - [ARCHITECTURE.md](ARCHITECTURE.md): what every part of the template does and how they connect.
 - [CUSTOMIZING.md](CUSTOMIZING.md): what to change for each new game.
 - [SERVICES.md](SERVICES.md): ads, purchases, leaderboards, analytics (the "backend").
 - [ACCESSIBILITY.md](ACCESSIBILITY.md): what is built in and what each game must still do.
-- [CLAUDE_CODE.md](CLAUDE_CODE.md): working with Claude, the hook and the skills.
+- [CLAUDE_CODE.md](CLAUDE_CODE.md): working with Claude and the hook.
 - [TESTING_AND_DEBUGGING.md](TESTING_AND_DEBUGGING.md): tests, the debug console, phone debugging.

@@ -17,22 +17,23 @@ It prints `CHECK PASSED` or `CHECK FAILED` with the relevant output, and exits 0
 
 ## Unit tests (GUT 9.7.1)
 
-Tests live in `tests/`, named `test_*.gd`. The template ships 67 tests (491 checks):
+Tests live in `tests/`, named `test_*.gd`:
 
 | File | Covers |
 |---|---|
-| `test_theme.gd` | Every style: tokens present, WCAG AA text contrast (cards, background, every button state), 48 dp buttons, switches and sliders |
-| `test_screens.gd` | Every screen and popup at 720×1280, 720×1600 and 960×1280: tappable controls at least 96 px, on screen, not overlapping; level select shows every level; credits carry the licence texts and no tappable links |
-| `test_ui.gd` | Style switching, Back closes only the top popup (and not the results popup), confirm answers, button squash and its Reduce Motion and opt-out, focus rings after touch vs keys, Back key mapped to `ui_cancel` |
+| `test_theme.gd` | The style (`sushi`, the only one): tokens present, WCAG AA text contrast (cards, background, every button state), 48 dp buttons, switches and sliders |
+| `test_screens.gd` | Every screen and popup at 720×1280, 720×1600 and 960×1280: tappable controls at least 96 px, on screen, not overlapping; home shows the next level's chapter as a road of plates and a "Level N" Play button; a new player starts in level 1; the doom card fits every size; credits carry the licence texts and no tappable links |
+| `test_ui.gd` | Only the `sushi` style is listed and applies, Back closes only the top popup (and not the results popup), confirm answers, button squash and its Reduce Motion and opt-out, focus rings after touch vs keys, Back key mapped to `ui_cancel` |
 | `test_progress.gd` | Best stars, unlocks, coins, purchases, reload, daily streak (same day, next day, missed day, 7-day cycle, month ends) |
 | `test_responsive.gd` | Grid columns per width, the max-width column, simulated safe-area insets |
-| `test_services.gd` | Ads and purchase results arrive after the call (screens call, then await), and buying a coin pack in the shop adds the coins |
+| `test_services.gd` | Ads and purchase results arrive after the call (screens call, then await) |
 | `test_touch_scroll.gd` | A drag that starts on a button scrolls the list and does not press it; a tap still presses it (fails on Godot's plain ScrollContainer) |
 | `test_ad_policy.gd` | Every interstitial rule (first session, level, wins, gaps, caps, rewarded cooldown, daily/zen) |
 | `test_seed_service.gd` | A known SHA-256 vector, reproducibility, JSON round-trips |
 | `test_save_store.gd` | Round trip, missing file, corrupt file |
-| `test_app_lifecycle.gd` | Settings applied from PlayerConfig; lifecycle signals reach Events |
+| `test_app_lifecycle.gd` | Settings (in a test copy of `settings.cfg`) applied to Juice and Haptics, kept across a restart, volume reaching the audio bus; lifecycle signals reach Events |
 | `test_juice.gd` | Effects settle back to rest scale, including rapid retriggers; reduced motion |
+| `test_sushi_*.gd`, `test_state_solver.gd`, `test_rack.gd` | Sushi Loop's rules, solver, bots, progression, the baked levels and the board played through taps, plus the generic solver and rack in `game/kit/` (see [SUSHI_LOOP.md](SUSHI_LOOP.md)) |
 
 Run them:
 ```powershell
@@ -62,18 +63,25 @@ godot --headless --path . -s tools/hooks/check_script.gd -- res://game/board.gd
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1                     # project style, 4 sizes
-powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 -Styles all -Sizes 720x1600
+powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 -Sizes 720x1600
 powershell -ExecutionPolicy Bypass -File tools/snapshots.ps1 -Only "main_menu,pause" -Inset "0,64,0,32"
 ```
 Renders every screen and popup (in a real window for a minute) to
-`build/snapshots/<style>_<w>x<h>_<screen>.png`, plus a contact sheet per style and size. `-Inset`
-fakes a camera hole and gesture bar in canvas pixels. It uses its own demo save. Claude Code reads
-these PNGs to check its own UI work.
+`build/snapshots/<style>_<w>x<h>_<screen>.png` (the style is `sushi`), plus a contact sheet per
+size. The window stays small and in the middle of the screen while the game renders the full phone
+canvas inside it (`tools/test_window.gd`). `-Inset` fakes a camera hole and gesture bar in canvas
+pixels. It uses its own demo save. Claude Code reads these PNGs to check its own UI work.
+
+Play a level for real with injected taps (also a small real window, frames in
+`build/playtest/<mode>_<level>/`):
+```powershell
+godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]
+```
 
 Change scene properties without opening the editor (Godot writes the file, then the tool reloads it
 and checks every change):
 ```powershell
-godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/shop.tscn Safe extra_margin 24
+godot --headless --path . -s tools/scene_edit.gd -- res://ui/screens/credits.tscn Safe extra_margin 24
 ```
 
 ## The debug console
@@ -100,6 +108,9 @@ Debug builds only (disabled in release; `addons/limbo_console.cfg`).
 |---|---|
 | OnePlus 10R (CPH2423), Android 15, MediaTek Dimensity 8100, Mali-G610, 1080×2412, 8 GB | Every screen and popup, all five styles switched live, Back on every screen and popup, drag-scrolling the shop and credits from buttons and text (no accidental purchases or links), launch shows only the app icon then the title splash, pause and resume, win and lose, rewarded continue, coin purchase, daily reward, scrolling. Cold start to first frame 0.85-1.1 s. 60 fps on every screen including Neon Arcade's animated grid (the phone runs this app at 60 Hz), 28-31 draw calls, about 50 MB engine memory (274 MB process PSS). No script errors in the log. The camera hole (top 96 px) and gesture bar are kept clear |
 
+This row is the template's own device test and predates Sushi Loop: the five styles, the shop,
+coin purchases and the daily reward it mentions have since been removed.
+
 Not yet tested: a low-end phone (Adreno GPU, 2-3 GB RAM), a tablet, Android 10-12.
 
 Known debug-only quirk: on this phone, typing into the debug console leaves the picture about
@@ -119,23 +130,23 @@ console does not exist in release builds.
 - **Fill-rate test:** turn V-Sync off and compare FPS in a large and a small window; little change
   means the bottleneck is elsewhere.
 - **Deeper:** Perfetto (Godot 4.7's default Android tracer) or Android GPU Inspector for GPU spikes.
-- Test on one Mali and one Adreno phone when you can; the `mobile-performance-audit` skill has the
-  full checklist and Google Play's crash and ANR limits.
+- Test on one Mali and one Adreno phone when you can.
 
 ## Exports
 
 | Preset | Output | Use |
 |---|---|---|
 | Android Debug APK | `build/game-debug.apk` | Your phone and friends' phones (`adb install -r`) |
-| Android Release AAB | `build/game-release.aab` | Google Play (needs the game's release keystore; see `play-release`) |
+| Android Release AAB | `build/game-release.aab` | Google Play (needs the game's release keystore, passed through the `GODOT_ANDROID_KEYSTORE_RELEASE_*` environment variables) |
 
 ```powershell
 godot --headless --path . --export-debug "Android Debug APK" build/game-debug.apk
 godot --headless --path . --install-android-build-template --export-release "Android Release AAB" build/game-release.aab
 ```
-Both presets leave out `build/`, `tests/`, `tools/`, GUT, Maaack's examples and editor-only addons,
-and pack `ATTRIBUTION.md` and the font and icon licences. `build/` and `android/` are ignored by git
-(`build/.gdignore` also stops Godot importing screenshots there). The debug APK is about 30 MB.
+Both presets leave out `build/`, `tests/`, `tools/`, GUT and LimboConsole's unused fonts and theme,
+and pack `ATTRIBUTION.md`, the baked levels in `data/` and the font, icon and emoji licences.
+`build/` and `android/` are ignored by git (`build/.gdignore` also stops Godot importing
+screenshots there). The debug APK is about 30 MB.
 
 ## Recording video for the store
 

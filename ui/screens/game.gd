@@ -158,7 +158,11 @@ func _resume_after_continue() -> void:
 func _go(choice: Variant) -> void:
 	match choice:
 		"next":
-			Screens.level = mini(_level + 1, SushiLevels.count())
+			if _level >= SushiLevels.count():
+				# The very last level: home shows the whole road won.
+				UI.goto(Screens.MAIN_MENU)
+				return
+			Screens.level = _level + 1
 			UI.goto(Screens.GAME)
 		"retry":
 			UI.goto(Screens.GAME)

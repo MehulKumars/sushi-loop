@@ -104,5 +104,5 @@ icon = ExtResource("8_settings")
 [node name="HomeButton" type="Button" parent="Safe/Center/Sheet/Content" unique_id=728472710]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Main menu"
+text = "Home"
 icon = ExtResource("9_home")

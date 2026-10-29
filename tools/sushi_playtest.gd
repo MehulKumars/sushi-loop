@@ -176,12 +176,14 @@ func _tap(w: int) -> void:
 
 
 func _tap_at(at: Vector2) -> void:
+	# Events arrive in window pixels; the small test window shows the canvas scaled down.
+	var window_at := root.get_final_transform() * at
 	for pressed in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_LEFT
 		event.pressed = pressed
-		event.position = at
-		event.global_position = at
+		event.position = window_at
+		event.global_position = window_at
 		Input.parse_input_event(event)
 		await _frames(1)
 
