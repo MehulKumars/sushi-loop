@@ -19,9 +19,9 @@ leave slides on and comes back a lap later, so the order of takes is the puzzle.
 Plate **types** are `0..6`: maki, nigiri, onigiri, gunkan, tamago, dango, temaki. A type is shown
 by its silhouette first and its plate-rim colour and pattern second (never colour alone).
 
-A level is: a belt of `N` slots (12-24), the plate type in each slot (or empty), a queue of bento
+A level is: a belt of `N` slots (12-32), the plate type in each slot (or empty), a queue of bento
 types, how many bentos are open at once (`open`, 1 or 2), the pick-window size (`window`, 2 or 3),
-the counter size (`counter`, 4-6) and how many queued bentos are shown (`preview`, display only).
+the counter size (`counter`, 3-7) and how many queued bentos are shown (`preview`, display only).
 Every type has exactly 3 plates per bento of that type, so plates = 3 × bentos.
 
 R1. **Belt.** Plate ids are belt slot indices. The plate in slot `i` sits at ring position
@@ -126,8 +126,10 @@ queue are short strings such as `"01.2"`).
      (exit-first, preview-aware, slips one take in ten: an attentive player) each play it 200
      times; their win rates rate the level (a quick 40-run look drops deals far outside first).
 3. It keeps the deal nearest the middle of the role's band. When no deal lands in the band, it
-   deals again with the counter one bigger and the plates in better order (too hard), or one
-   smaller and more scrambled (too easy): four rounds at most, then the nearest miss.
+   deals again over a grid: the counter 0, -1, +1, -2, +2 from the plan, each with plates in
+   good order, mixed, or scrambled (300 deals per try), until one lands; otherwise the nearest
+   miss. Which way helps depends on the twists (one bento and a two-plate window can need plates
+   in better order to get harder), so the grid is tried, not guessed.
 4. After chapter 1, no level except a rest level may be trivial (greedy wins more than 95%), hard
    and super-hard levels must reward care (careful beats greedy by more than 0.2), and no level is
    one narrow line (careful wins at least 35%). `tests/test_sushi_levels.gd` checks the bake.
@@ -151,7 +153,8 @@ typical player (to be replaced by real per-level pass rates from analytics after
 
 | Chapters | Roles 1-10 | Hard + super per ten |
 |---|---|---|
-| 1-10 | easy easy easy medium **hard** rest medium medium **super** rest | 2 |
+| 1 | easy easy easy medium **hard** rest medium medium **super** rest | 2 |
+| 2-10 | easy easy medium medium **hard** rest medium medium **super** rest | 2 |
 | 11-40 | easy easy medium medium **hard** rest medium **hard** **super** rest | 3 |
 | 41-100 | easy medium medium medium **hard** rest medium **hard** **super** rest | 3 |
 

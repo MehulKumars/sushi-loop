@@ -62,7 +62,7 @@ real video or full-screen ad would play). They are not the Play Store build.
 
 ## Status
 
-Version 0.4.0: 1000 levels with a measured difficulty curve, a new home (a road of plates per
+Version 0.4.1: 1000 levels with a measured difficulty curve, a new home (a road of plates per
 chapter) and start (first launch goes straight into level 1), one look instead of the template's
 five, and the desktop template's leftovers removed. Before Google Play: real ads (AdMob account
 and plugin), a privacy policy page, a phone feel test, the final name, store page and release

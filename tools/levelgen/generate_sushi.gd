@@ -213,7 +213,10 @@ static func _in_band(level: SushiLevel) -> bool:
 	if level.id <= SushiPlan.FROZEN_UNTIL:
 		return true
 	var band: Dictionary = SushiPlan.BANDS[level.role]
-	return SushiGenerator._outside(level.greedy, band.greedy) <= 0.0 \
+	var planned := int(SushiPlan.spec(level.id).counter)
+	var step: int = SushiGenerator.COUNTER_STEPS.map(func(s: int) -> int: return absi(s)).max()
+	return absi(level.counter - planned) <= step \
+			and SushiGenerator._outside(level.greedy, band.greedy) <= 0.0 \
 			and SushiGenerator._outside(level.careful, band.careful) <= 0.0 \
 			and level.par >= int(band.par_min) \
 			and SushiGenerator._care_shortfall(level) <= 0.0

@@ -12,8 +12,10 @@ const FROZEN_PATH: String = "res://tools/levelgen/frozen_v1.json"
 const FROZEN_UNTIL: int = 60
 
 ## Roles per ten levels. Slots 5 (hard), 6 (rest), 9 (super) and 10 (rest) never move; as the
-## game goes on, easy slots turn medium and a second hard level arrives.
-const ROLES_EARLY: Array[String] = ["easy", "easy", "easy", "medium", "hard", "rest", "medium", "medium", "super", "rest"]
+## game goes on, easy slots turn medium and a second hard level arrives. Chapter 1 (the
+## tutorials) has a third easy level.
+const ROLES_FIRST: Array[String] = ["easy", "easy", "easy", "medium", "hard", "rest", "medium", "medium", "super", "rest"]
+const ROLES_EARLY: Array[String] = ["easy", "easy", "medium", "medium", "hard", "rest", "medium", "medium", "super", "rest"]
 const ROLES_MID: Array[String] = ["easy", "easy", "medium", "medium", "hard", "rest", "medium", "hard", "super", "rest"]
 const ROLES_LATE: Array[String] = ["easy", "medium", "medium", "medium", "hard", "rest", "medium", "hard", "super", "rest"]
 const MID_FROM_CHAPTER: int = 11
@@ -44,7 +46,9 @@ const CAREFUL_SHARE: float = 0.6
 static func role(id: int) -> String:
 	var chapter := SushiLevels.chapter(id)
 	var roles := ROLES_EARLY
-	if chapter >= LATE_FROM_CHAPTER:
+	if chapter == 1:
+		roles = ROLES_FIRST
+	elif chapter >= LATE_FROM_CHAPTER:
 		roles = ROLES_LATE
 	elif chapter >= MID_FROM_CHAPTER:
 		roles = ROLES_MID
