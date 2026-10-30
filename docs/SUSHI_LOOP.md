@@ -54,7 +54,8 @@ R8. **Continue.** After a loss, a continue adds 2 counter slots, puts the held p
 counter and advances the belt (R5). It is offered as an opt-in rewarded video, never paid.
 
 R9. **Undo.** Undo restores the state before the last take (including the counter peak). One free
-undo per level. Rewinding after the doom detector's proof (below) is always free.
+undo per level. Stepping back after the doom detector's proof (below) costs an undo the same way: the
+free one first, then 30 coins or a rewarded video. Retry is always free, so losing is real but fair.
 
 Invariant: after every take no counter plate matches an open bento (R4.1 and R6 send them in).
 
@@ -104,7 +105,7 @@ Invariant: after every take no counter plate matches an open bento (R4.1 and R6 
 
 - **Doom detector:** after each take, the solver searches from the current state in small slices
   per frame (it never blocks input). If it *proves* no solution remains, the game says so and
-  offers to rewind to the most recent state known to be solvable (for free), to retry the level
+  offers to step back to the most recent state known to be solvable (costs an undo), to retry the level
   from the start, or to keep going. If its budget runs out it says nothing.
 - The counter pulses when one slot is left.
 - Hint: the solver's next move, pulsed in the window.
@@ -261,7 +262,7 @@ hard levels, ×2 on super-hard levels; star gifts and chapter bonuses as above.
 | Undo (R9) | 1 | 30 coins, or a rewarded video when short of coins |
 | Hint (the solver's next move) | 1 | 30 coins, or a rewarded video when short of coins |
 | Continue after a loss (R8: +2 counter slots) | - | one free rewarded video per attempt, or 50 coins; at most 3 continues per attempt (Retry is always free) |
-| Step back after a doom proof | always free | - |
+| Step back after a doom proof | uses the free undo | 30 coins, or a rewarded video when short of coins |
 
 Levels 1-2 guide the first take: the window frame breathes and the plate that fits glows with a tap ripple.
 

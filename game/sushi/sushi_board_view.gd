@@ -146,9 +146,9 @@ func undo(extra: bool = false) -> bool:
 	return true
 
 
-## Back to the last state the doom detector proved solvable (free).
-func rewind() -> bool:
-	if _busy or run == null or not run.rewind_to_safe():
+## Back to the last state the doom detector proved solvable: the free undo, or an `extra` one.
+func rewind(extra: bool = false) -> bool:
+	if _busy or run == null or not run.rewind_to_safe(extra):
 		return false
 	_rebuild()
 	SushiSfx.play(&"whoosh")

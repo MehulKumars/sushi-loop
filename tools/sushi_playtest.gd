@@ -2,9 +2,11 @@ extends SceneTree
 ## Plays a Sushi Loop level in a real window with injected taps (the same input path as a finger)
 ## and saves frames of the key moments to build/playtest/: the start, a take in flight, the
 ## counter, a bento closing, the cascade, the last bento, results.
-## godot --path . -s tools/sushi_playtest.gd [-- <level> [solve|doom|lose] [still] [WxH]]
+## godot --path . -s tools/sushi_playtest.gd [-- <level> [solve|doom|lose|watch [seconds]] [still] [WxH]]
 ##   solve: the solver's line to a win; doom: walk into a proven dead end, see the doom card,
 ##   step back, then finish; lose: fill the counter until it overflows. "still" = Reduce Motion.
+##   watch: the solver's line slowly for a person to follow (2 s after each take, each move
+##   printed), no frames saved; the window stays open until closed.
 ## Needs a window (not --headless).
 
 const OUT_DIR: String = "res://build/playtest"
@@ -48,6 +50,14 @@ func _initialize() -> void:
 		Juice.motion_scale = 0.0
 	await _frames(10)
 	_board = current_scene.get_node(^"%SushiBoard") as SushiBoardView
+	if mode == "watch":
+		var pause := float(args[2]) if args.size() > 2 and args[2].is_valid_float() else 2.0
+		await _wait(3.0)
+		await _play_solution(false, pause)
+		var end := _board.run.state
+		print("watch: level %d %s with %d stars (counter peak %d)" % [level, "won" if end.is_won() else "not won",
+				_board.run.stars(), end.peak])
+		return
 	await _save("start")
 	match mode:
 		"doom":
@@ -66,8 +76,9 @@ func _initialize() -> void:
 	quit()
 
 
-## The solver's line from wherever the run is; `shots` saves the key moments on the way.
-func _play_solution(shots: bool) -> void:
+## The solver's line from wherever the run is; `shots` saves the key moments on the way. With a
+## `pause`, waits that long after each take and prints the move (for watching).
+func _play_solution(shots: bool, pause: float = 0.0) -> void:
 	var first := true
 	var counter_shot := false
 	var close_shot := false
@@ -80,6 +91,11 @@ func _play_solution(shots: bool) -> void:
 			return
 		var w := solver.solution[0]
 		var closes := _closes_a_bento(state, w)
+		if pause > 0.0:
+			var type := state.plate_type(state.window_plate(w))
+			print("move %d: %s from window slot %d -> %s (counter %d/%d)" % [state.queue.size() * 3 - state.plates_on_belt() + 1,
+					SushiPalette.type_name(type), w + 1, "bento" if state.fits(type) else "counter",
+					state.counter.size() + (0 if state.fits(type) else 1), state.counter.capacity])
 		await _tap(w)
 		if shots and first:
 			await _wait(0.08)
@@ -92,6 +108,8 @@ func _play_solution(shots: bool) -> void:
 			await _save("next_bento_and_cascade")
 			close_shot = true
 		await _settle()
+		if pause > 0.0:
+			await _wait(pause)
 		if shots and not counter_shot and _board.run.state.counter.size() > 0:
 			await _save("counter")
 			counter_shot = true

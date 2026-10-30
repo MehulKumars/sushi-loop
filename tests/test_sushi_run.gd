@@ -1,5 +1,5 @@
 extends GutTest
-## SushiRun: undo (R9), the free rewind after a doom proof, continue (R8) and stars.
+## SushiRun: undo (R9), the rewind after a doom proof (it costs an undo), continue (R8) and stars.
 
 const H := preload("res://tests/sushi_helpers.gd")
 
@@ -40,7 +40,7 @@ func test_undo_after_a_loss() -> void:
 	assert_eq(run.state.offset, 1)
 
 
-func test_rewind_goes_back_to_the_last_safe_state_for_free() -> void:
+func test_rewind_goes_back_to_the_last_safe_state_for_an_undo() -> void:
 	var run := SushiRun.new(H.cascade(2))
 	run.take(2)
 	run.mark_safe()
@@ -49,7 +49,18 @@ func test_rewind_goes_back_to_the_last_safe_state_for_free() -> void:
 	assert_eq(run.state.offset, 1)
 	assert_eq(run.state.counter.items, PackedInt32Array([2]))
 	assert_true(run.state.on_belt(1))
-	assert_eq(run.undos_left(), 1, "rewinding is free")
+	assert_eq(run.undos_left(), 0, "stepping back spends the free undo (R9)")
+
+
+func test_with_no_undo_left_a_rewind_must_be_paid_for() -> void:
+	var run := SushiRun.new(H.cascade(2))
+	run.take(2)
+	run.take(2)
+	assert_true(run.undo(), "the free undo")
+	run.take(2)
+	assert_false(run.rewind_to_safe(), "no free undo left")
+	assert_true(run.rewind_to_safe(true), "an extra one, paid with coins or a video")
+	assert_eq(run.state.offset, 0)
 
 
 func test_rewind_without_a_safe_state_goes_to_the_start() -> void:
@@ -59,7 +70,7 @@ func test_rewind_without_a_safe_state_goes_to_the_start() -> void:
 	assert_true(run.rewind_to_safe())
 	assert_eq(run.state.offset, 0)
 	assert_eq(run.state.plates_on_belt(), 6)
-	assert_false(run.rewind_to_safe(), "already at the start")
+	assert_false(run.rewind_to_safe(true), "already at the start")
 
 
 func test_rewind_skips_states_after_the_safe_one() -> void:

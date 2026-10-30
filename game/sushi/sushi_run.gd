@@ -1,8 +1,8 @@
 class_name SushiRun
 extends RefCounted
-## One attempt at a level for the game screen: the state plus undo history (R9), the free rewind
-## to the last state the doom detector proved solvable, continues and stars. A continue's extra
-## counter slots survive undo, so the player never loses what the video gave.
+## One attempt at a level for the game screen: the state plus undo history (R9), the rewind to
+## the last state the doom detector proved solvable (it costs an undo), continues and stars. A
+## continue's extra counter slots survive undo, so the player never loses what the video gave.
 
 const FREE_UNDOS: int = 1
 const CONTINUE_SLOTS: int = 2
@@ -64,10 +64,16 @@ func mark_safe() -> void:
 	safe = true
 
 
-## Back to the most recent state proven solvable (or the start), for free. False if already there.
-func rewind_to_safe() -> bool:
+## Back to the most recent state proven solvable (or the start). It costs an undo like undo():
+## the free one, or an extra one (`extra`, paid with coins or a video). False if already there
+## or no undo is left.
+func rewind_to_safe(extra: bool = false) -> bool:
 	if safe or _history.is_empty():
 		return false
+	if not extra:
+		if _free_undos <= 0:
+			return false
+		_free_undos -= 1
 	while not _history.is_empty():
 		var previous: SushiState = _history.pop_back()
 		var was_safe: bool = _history_safe.pop_back()

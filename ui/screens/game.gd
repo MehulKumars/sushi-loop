@@ -35,6 +35,8 @@ var _outlook: int = 3
 var _undo_badge: Label
 var _hint_badge: Label
 var _doom_card: PanelContainer
+## The doom card's Step back button (its label shows what stepping back costs).
+var _step_back: Button
 var _stars: StarRating
 var _results: Modal
 ## The hard-level banner while it shows (it leaves early on the first take or a doom card).
@@ -432,16 +434,16 @@ func _build_doom_card() -> void:
 	box.add_child(title)
 	var text := Label.new()
 	text.theme_type_variation = &"CaptionLabel"
-	text.text = "Every way on from here ends with a full counter. Step back to your last good move for free, or start over."
+	text.text = "Every way on from here ends with a full counter. Step back to your last good move (it costs an undo), or start over."
 	text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	box.add_child(text)
-	var back := Button.new()
-	back.theme_type_variation = &"AccentButton"
-	back.text = "Step back"
-	back.icon = Icons.UNDO
-	back.pressed.connect(_on_step_back)
-	box.add_child(back)
+	_step_back = Button.new()
+	_step_back.theme_type_variation = &"AccentButton"
+	_step_back.text = "Step back"
+	_step_back.icon = Icons.UNDO
+	_step_back.pressed.connect(_on_step_back)
+	box.add_child(_step_back)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override(&"separation", 14)
 	box.add_child(row)
@@ -464,6 +466,7 @@ func _show_doom_card() -> void:
 	if _finished:
 		return
 	_hide_banner()
+	_step_back.text = "Step back" if _board.run.undos_left() > 0 else "Step back  ·  %d" % UNDO_COST
 	_doom_card.show()
 	Juice.pop(_doom_card, 1.04, 0.16)
 
@@ -473,10 +476,24 @@ func _hide_doom_card() -> void:
 		_doom_card.hide()
 
 
+## Step back to the last good move: it costs an undo (the free one, then coins or a video).
 func _on_step_back() -> void:
-	if _board.rewind():
-		_hide_doom_card()
-		_refresh()
+	if _finished or _board.is_busy():
+		return
+	if _board.run.undos_left() > 0:
+		if not _board.rewind():
+			return
+	elif Progress.coins() >= UNDO_COST:
+		if not _board.rewind(true):
+			return
+		Progress.spend_coins(UNDO_COST)
+		%Coins.set_value(Progress.coins())
+	elif await _offer_video("Step back", "undo"):
+		_board.rewind(true)
+	else:
+		return
+	_hide_doom_card()
+	_refresh()
 
 
 func _add_badge(button: Button) -> Label:

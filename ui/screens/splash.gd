@@ -56,8 +56,14 @@ func _continue() -> void:
 	UI.goto(first_screen())
 
 
-## Where a launch lands: a new player plays at once, the rest see home.
+## Where a launch lands: a new player plays at once, the rest see home. Debug builds can open
+## any level for testing: godot --path . -- --level 769
 static func first_screen() -> String:
+	var args := OS.get_cmdline_user_args()
+	var at := args.find("--level")
+	if OS.is_debug_build() and at >= 0 and at + 1 < args.size() and args[at + 1].is_valid_int():
+		Screens.level = clampi(int(args[at + 1]), 1, SushiLevels.count())
+		return Screens.GAME
 	if Progress.levels_won() == 0:
 		Screens.level = 1
 		return Screens.GAME
