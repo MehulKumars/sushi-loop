@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/screens/how_to_play.gd" id="1_2ppc0"]
+[ext_resource type="Script" path="res://core/ui/styled_background.gd" id="2_1vj0j"]
+[ext_resource type="Script" path="res://core/ui/safe_area_margin.gd" id="3_ployh"]
+[ext_resource type="Script" path="res://core/ui/max_width_container.gd" id="4_2vbtx"]
+[ext_resource type="Texture2D" path="res://core/ui/icons/arrow_back.svg" id="5_tx7dr"]
+[ext_resource type="Script" path="res://core/ui/touch_scroll_container.gd" id="6_ebci1"]
+
+[node name="HowToPlay" type="Control" unique_id=261491971]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_2ppc0")
+
+[node name="Background" type="ColorRect" parent="." unique_id=1229888063]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_1vj0j")
+
+[node name="Safe" type="MarginContainer" parent="." unique_id=1659928612]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("3_ployh")
+extra_margin = 32
+
+[node name="Column" type="Container" parent="Safe" unique_id=821160683]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("4_2vbtx")
+max_width = 820.0
+
+[node name="Layout" type="VBoxContainer" parent="Safe/Column" unique_id=1380268549]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 28
+
+[node name="Header" type="HBoxContainer" parent="Safe/Column/Layout" unique_id=1690306349]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="BackButton" type="Button" parent="Safe/Column/Layout/Header" unique_id=1966028759]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"IconButton"
+icon = ExtResource("5_tx7dr")
+
+[node name="Title" type="Label" parent="Safe/Column/Layout/Header" unique_id=1477322538]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"ScreenHeaderLabel"
+text = "How to play"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HeaderBalance" type="Control" parent="Safe/Column/Layout/Header" unique_id=1966226206]
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Card" type="PanelContainer" parent="Safe/Column/Layout" unique_id=364545176]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Scroll" type="ScrollContainer" parent="Safe/Column/Layout/Card" unique_id=2143707635]
+unique_name_in_owner = true
+layout_mode = 2
+horizontal_scroll_mode = 0
+script = ExtResource("6_ebci1")
+
+[node name="List" type="VBoxContainer" parent="Safe/Column/Layout/Card/Scroll" unique_id=998923013]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 16

@@ -7,6 +7,12 @@ extends RefCounted
 
 const GREEDY: int = 0
 const CAREFUL: int = 1
+## Mindless players: always the plate at the exit end of the window, or always the one that just
+## came in. A level either of them wins needs no thought (the bake keeps them losing).
+const SPAM_EXIT: int = 2
+const SPAM_ENTRY: int = 3
+## CAREFUL without its slips: the "take what fits" rule played perfectly.
+const CAREFUL_PURE: int = 4
 ## Chance per take that the careful bot plays a greedy move instead.
 const SLIP: float = 0.1
 const NOT_SHOWN: int = 99
@@ -15,6 +21,14 @@ const NOT_SHOWN: int = 99
 ## The window position the bot takes, -1 if the level is over.
 static func choose(state: SushiState, kind: int, rng: RandomNumberGenerator) -> int:
 	if state.is_over():
+		return -1
+	if kind == SPAM_EXIT or kind == SPAM_ENTRY:
+		var order := range(state.window)
+		if kind == SPAM_EXIT:
+			order.reverse()
+		for w: int in order:
+			if state.window_plate(w) >= 0:
+				return w
 		return -1
 	var fitting: Array[int] = []
 	var others: Array[int] = []
@@ -51,8 +65,20 @@ static func play(level: SushiLevel, kind: int, rng: RandomNumberGenerator) -> bo
 		var policy := kind
 		if kind == CAREFUL and rng.randf() < SLIP:
 			policy = GREEDY
-		state.take(choose(state, policy, rng))
+		elif kind == CAREFUL_PURE:
+			policy = CAREFUL
+		var w := choose(state, policy, rng)
+		if w < 0:
+			return false
+		state.take(w)
 	return state.is_won()
+
+
+## True if the mindless or rule-of-thumb player `kind` (SPAM_EXIT, SPAM_ENTRY, CAREFUL_PURE) wins.
+static func wins(level: SushiLevel, kind: int) -> bool:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	return play(level, kind, rng)
 
 
 static func win_rate(level: SushiLevel, kind: int, runs: int, seed: int) -> float:

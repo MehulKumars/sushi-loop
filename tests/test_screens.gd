@@ -8,8 +8,8 @@ extends GutTest
 const TOUCH := 96.0
 const SIZES: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280)]
 const PAGES: Array[String] = [
-	Screens.SPLASH, Screens.MAIN_MENU, Screens.GAME, Screens.CREDITS,
-	Screens.PAUSE, Screens.RESULTS, Screens.SETTINGS, Screens.CONFIRM,
+	Screens.SPLASH, Screens.MAIN_MENU, Screens.LEVELS, Screens.HOW_TO_PLAY, Screens.GAME, Screens.CREDITS,
+	Screens.PAUSE, Screens.RESULTS, Screens.SETTINGS, Screens.CONFIRM, Screens.SHOP,
 ]
 
 
@@ -34,23 +34,32 @@ func test_every_page_fits_every_size() -> void:
 			assert_eq(problems, [] as Array[String], "%s at %dx%d" % [path.get_file(), size.x, size.y])
 
 
-## Home shows the next level's chapter as a road of plates: five won, the next one, four locked.
-func test_home_road_shows_the_chapter() -> void:
+## Home offers the next level, then Levels, How to play and Shop.
+func test_home_plays_the_next_level_and_links_the_rest() -> void:
 	var viewport := _viewport(Vector2i(720, 1280))
 	var page := (load(Screens.MAIN_MENU) as PackedScene).instantiate()
 	viewport.add_child(page)
 	await _settle()
-	var road := page.find_children("*", "SushiLevelRoad", true, false)
-	assert_eq(road.size(), 1)
-	var plates := road[0].get_children()
-	assert_eq(plates.size(), SushiLevels.CHAPTER)
-	var states: Array[int] = []
-	for plate: Node in plates:
-		states.append(int(plate.get(&"state")))
-	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.WON), 5)
-	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.NEXT), 1)
-	assert_eq(states.count(SushiLevelRoad.RoadPlate.State.LOCKED), 4)
 	assert_eq((page.get_node(^"%PlayButton") as Button).text, "Level 6")
+	var words: Array[String] = []
+	for node in page.find_children("*", "Button", true, false):
+		words.append((node as Button).text)
+	for link in ["Levels", "How to play", "Shop"]:
+		assert_has(words, link)
+	viewport.free()
+
+
+## Levels lists every chapter and opens the next level's: five won, the next one, four locked.
+func test_levels_open_the_current_chapter() -> void:
+	var viewport := _viewport(Vector2i(720, 1280))
+	var page := (load(Screens.LEVELS) as PackedScene).instantiate()
+	viewport.add_child(page)
+	await _settle()
+	assert_eq(page.get_node(^"%List").get_child_count(), SushiMeta.chapter_count())
+	var tiles := page.find_children("*", "LevelTile", true, false)
+	assert_eq(tiles.size(), SushiLevels.CHAPTER)
+	var unlocked := tiles.filter(func(tile: Node) -> bool: return not (tile as LevelTile).locked)
+	assert_eq(unlocked.size(), 6, "five won levels plus the next one")
 	viewport.free()
 
 

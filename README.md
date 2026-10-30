@@ -10,7 +10,7 @@ Pack each bento with three of a kind before the counter fills up.</b></p>
 Android 7 or newer · free · no timer · plays offline
 </p>
 
-![Home: the chapter as a road of plates; a long loop in play; a new dish card; a three-star win](docs/media/screens.png)
+![Home with Play, Levels, How to play and Shop; covered dishes under cloches; a rush order with 3 takes left; the Levels screen](docs/media/screens.png)
 
 ## How to play
 
@@ -29,22 +29,29 @@ stars under the counter), two for any clean win, one after a continue.
 
 ## What's in it
 
-- **1000 levels in 100 chapters**, each a restaurant with its own colours and its own twist: a
-  two-plate window, one bento at a time, the next bentos hidden, long loops, a full belt, a
-  small counter, and later two twists at once. Every ten levels climb to hard and super-hard
-  levels, with breathers in between. Every level is proven winnable and rated by bots before
-  it ships.
-- **Straight into play:** the first launch opens level 1, no menu. Home is a road of plates
-  for the current chapter: tap a won plate to replay it, or the big button for the next level.
+- **1000 levels in 100 chapters**, each a restaurant with its own colours and its own twist.
+  Every ten levels climb to hard and super-hard levels, with breathers in between. Every level
+  is proven winnable, and none can be won by tapping the same spot: the bake checks each one
+  against mindless players before it ships.
+- **New twists as you go:** covered dishes that only show in the window (chapter 3), rush
+  orders that must be packed within a number of takes (chapter 5), and the chef's gold special
+  that fills a gap in the fullest bento if you time it right (chapter 7). Later: two-plate
+  windows, one bento at a time, hidden queues, long loops, full belts, small counters, and two
+  twists at once.
+- **Straight into play:** the first launch opens level 1, no menu. Home has the next level on one
+  big button, plus Levels (every chapter and level), How to play (illustrated rules for every
+  twist) and the Shop.
 - **Seven dishes**, from salmon nigiri to purin, each introduced with its own card. Every dish
   has its own plate rim colour and pattern, so colour is never the only clue.
 - **Calm and satisfying:** plates squash and arc into their bentos, lids drop with a gold bow
   and a puff of sakura petals, cascades climb a koto scale, and a win ends with petals falling
   over the counter. Calm piano music. Reduce Motion turns all the movement off.
-- **Fair:** a free undo and hint every level, and a free step back the moment the game proves a
-  level can no longer be won. No timers, no lives, no energy.
+- **Losing is real, but fair:** a free undo and hint every level; the moment the game proves a
+  level can no longer be won it says so, and stepping back costs an undo. Retry is always free.
+  No timers, no lives, no energy.
 - **Rewards:** coins for stars (more on hard levels), a gift every 15 stars, a bonus for every
-  chapter. Coins buy hints, undos and continues. No purchases.
+  chapter, and a daily streak for a win a day. Coins buy packs of undos, hints and continues in
+  the shop. No real-money purchases.
 - **Ads only when you choose:** a video for a free continue, double coins, or a hint when you
   are out of coins. Full-screen ads only after a win, from level 8, never in your first
   session. No banners.
@@ -62,11 +69,11 @@ real video or full-screen ad would play). They are not the Play Store build.
 
 ## Status
 
-Version 0.4.1: 1000 levels with a measured difficulty curve, a new home (a road of plates per
-chapter) and start (first launch goes straight into level 1), one look instead of the template's
-five, and the desktop template's leftovers removed. Before Google Play: real ads (AdMob account
-and plugin), a privacy policy page, a phone feel test, the final name, store page and release
-signing.
+Version 0.5.0: three new mechanics (covered dishes, rush orders, the chef's special), 1000
+levels rebuilt so none can be won by tapping one spot, losing that counts (step back costs an
+undo), a classic home with Levels, How to play and a coin shop, and a daily streak. Before Google
+Play: real ads (AdMob account and plugin), a privacy policy page, a phone feel test, the final
+name, store page and release signing.
 
 ---
 
@@ -83,7 +90,7 @@ first). It started from the studio's [mobile game template](https://github.com/M
 | Reusable kit: `StateSolver`, `Rack`, `PathBelt` | `game/kit/` |
 | Board, plates, bentos, art, palette and restaurants | `game/sushi/*_view.gd`, `sushi_art.gd`, `sushi_palette.gd` |
 | Screens and popups | `ui/screens/`, `ui/popups/` |
-| Baked levels; plan, generator and ratings | `data/levels/sushi_v2.json` (1000 levels, about 180 KB); `tools/levelgen/` (plan, generator, parallel bake, curve report in `reports/`) |
+| Baked levels; plan, generator and ratings | `data/levels/sushi_v3.json` (1000 levels, about 180 KB); `tools/levelgen/` (plan, generator, parallel bake, curve report in `reports/`) |
 | Art, sounds, music, app icon | `assets/`, `tools/make_icon.gd`, `tools/audio/` |
 | Tests | `tests/` |
 | Rules for Claude Code | [CLAUDE.md](CLAUDE.md) |

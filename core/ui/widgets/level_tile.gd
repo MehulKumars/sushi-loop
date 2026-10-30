@@ -1,7 +1,7 @@
 @tool
 class_name LevelTile
 extends Button
-## One level in the level select grid: its number and best stars, or a lock.
+## One level in the Levels screen's grid: its number and best stars, or a lock.
 ## The next level to play uses the accent colour so the eye finds it at once.
 
 @export var level: int = 1:

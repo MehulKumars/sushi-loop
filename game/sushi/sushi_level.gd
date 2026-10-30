@@ -1,6 +1,6 @@
 class_name SushiLevel
 extends RefCounted
-## One Sushi Loop level as baked in data/levels/sushi_v2.json: the belt (a plate type per slot, -1
+## One Sushi Loop level as baked in data/levels/sushi_v3.json: the belt (a plate type per slot, -1
 ## for empty), the bento queue and the knobs (open bentos, window, counter, queue preview), plus
 ## the generator's ratings. Rules: docs/SUSHI_LOOP.md. In the file the belt and queue are short
 ## strings ("01.2" = types 0, 1, an empty slot, type 2; "a" = a covered type 0, "*" a chef's
@@ -43,6 +43,9 @@ var seed: int = 0
 var covers: int = 0
 ## Per queued bento: takes allowed once it opens (M2), 0 = no rush. Empty when nothing rushes.
 var rush := PackedInt32Array()
+## A super-hard level the bake could not make defeat the rule of thumb: a classic one instead
+## (docs/SUSHI_LOOP.md "Levels" 2). Written to the file only when set.
+var classic: bool = false
 
 
 static func make(belt_types: Array, bento_types: Array, open_count: int = 2, window_size: int = 3,
@@ -64,6 +67,7 @@ static func from_dict(d: Dictionary) -> SushiLevel:
 	level.covers = _covers(d.get("belt", []))
 	level.bentos = _ints(d.get("bentos", []))
 	level.rush = _ints(d.get("rush", []))
+	level.classic = bool(d.get("classic", false))
 	if d.has("rate"):
 		level.greedy = float(d.rate[0])
 		level.careful = float(d.rate[1])
@@ -91,6 +95,8 @@ func to_dict(with_seed: bool = true) -> Dictionary:
 	}
 	if has_rush():
 		out.rush = Array(rush)
+	if classic:
+		out.classic = true
 	if with_seed:
 		out.seed = seed
 	return out

@@ -1,0 +1,68 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/popups/shop_popup.gd" id="1_w6ao6"]
+[ext_resource type="Script" path="res://core/ui/safe_area_margin.gd" id="2_rrcea"]
+
+[node name="ShopPopup" type="Control" unique_id=1143801865]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_w6ao6")
+
+[node name="Safe" type="MarginContainer" parent="." unique_id=679119245]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2_rrcea")
+extra_margin = 24
+
+[node name="Center" type="CenterContainer" parent="Safe" unique_id=1685479974]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Sheet" type="PanelContainer" parent="Safe/Center" unique_id=1272587947]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"SheetPanel"
+
+[node name="Content" type="VBoxContainer" parent="Safe/Center/Sheet" unique_id=25781959]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Safe/Center/Sheet/Content" unique_id=823477908]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"HeaderLabel"
+text = "Shop"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Message" type="Label" parent="Safe/Center/Sheet/Content" unique_id=73328991]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Coins buy boosters for the tough levels."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="Offers" type="VBoxContainer" parent="Safe/Center/Sheet/Content" unique_id=1234877546]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Gap" type="Control" parent="Safe/Center/Sheet/Content" unique_id=1699502910]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CloseButton" type="Button" parent="Safe/Center/Sheet/Content" unique_id=14052912]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"GhostButton"
+text = "Close"

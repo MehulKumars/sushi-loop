@@ -1,5 +1,5 @@
 extends SceneTree
-## Bakes data/levels/sushi_v2.json from the plan (tools/levelgen/sushi_plan.gd): levels 1-60 copied
+## Bakes data/levels/sushi_v3.json from the plan (tools/levelgen/sushi_plan.gd): levels 1-60 copied
 ## from the frozen first bake, every later level dealt again and again (seeded) until enough deals
 ## land in its band. Starts one worker process per spare CPU core (worker i bakes every Nth level
 ## of the list into build/levelgen/shard_i.jsonl), then merges the shards and writes the rating
@@ -8,10 +8,11 @@ extends SceneTree
 ## godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- [first last] [--misses] [--workers N]]
 ##   first last: bake only that range; the other levels stay as baked.
 ##   --misses: bake again only the levels outside their band (after a band changed).
+##   --role super: bake only the levels of that role.
 
-const OUT_PATH := "res://data/levels/sushi_v2.json"
-const REPORT_CSV := "res://tools/levelgen/reports/sushi_v2.csv"
-const REPORT_MD := "res://tools/levelgen/reports/sushi_v2.md"
+const OUT_PATH := "res://data/levels/sushi_v3.json"
+const REPORT_CSV := "res://tools/levelgen/reports/sushi_v3.csv"
+const REPORT_MD := "res://tools/levelgen/reports/sushi_v3.md"
 const WORK_DIR := "res://build/levelgen"
 const SELF := "res://tools/levelgen/generate_sushi.gd"
 ## The level ids this bake covers, for the workers.
@@ -36,6 +37,7 @@ func _orchestrate(args: PackedStringArray) -> void:
 	var last := SushiPlan.COUNT
 	var workers := maxi(1, OS.get_processor_count() - 2)
 	var misses := false
+	var role_only := ""
 	var numbers: Array[int] = []
 	var i := 0
 	while i < args.size():
@@ -44,6 +46,9 @@ func _orchestrate(args: PackedStringArray) -> void:
 			i += 1
 		elif args[i] == "--misses":
 			misses = true
+		elif args[i] == "--role" and i + 1 < args.size():
+			role_only = args[i + 1]
+			i += 1
 		elif args[i].is_valid_int():
 			numbers.append(int(args[i]))
 		i += 1
@@ -53,6 +58,8 @@ func _orchestrate(args: PackedStringArray) -> void:
 	var ids: Array[int] = []
 	var baked_now := _existing()
 	for id in range(first, last + 1):
+		if not role_only.is_empty() and SushiPlan.role(id) != role_only:
+			continue
 		if not misses or not baked_now.has(id) or not _in_band(SushiLevel.from_dict(baked_now[id])):
 			ids.append(id)
 	if ids.is_empty():
@@ -212,10 +219,24 @@ func _write_summary(baked: Dictionary[int, Dictionary]) -> void:
 static func _in_band(level: SushiLevel) -> bool:
 	if level.id <= SushiPlan.FROZEN_UNTIL:
 		return true
-	var band: Dictionary = SushiPlan.BANDS[level.role]
-	var planned := int(SushiPlan.spec(level.id).counter)
+	var spec := SushiPlan.spec(level.id)
+	if level.classic:
+		spec.careful_must_lose = false
+		spec.band = SushiPlan.CLASSIC_SUPER
+	var band: Dictionary = spec.band
+	var planned := int(spec.counter)
 	var step: int = SushiGenerator.COUNTER_STEPS.map(func(s: int) -> int: return absi(s)).max()
+	# The planned share of plates is covered exactly, and the counter keeps its floor.
+	var covered := 0
+	for slot in level.belt.size():
+		if level.is_covered(slot):
+			covered += 1
+	if covered != roundi(float(spec.get("covers", 0.0)) * (level.plate_count() - level.wild_count())):
+		return false
+	if level.counter < int(spec.get("counter_min", 3)):
+		return false
 	return absi(level.counter - planned) <= step \
+			and SushiGenerator.thought_shortfall(level, spec) <= 0.0 \
 			and SushiGenerator._outside(level.greedy, band.greedy) <= 0.0 \
 			and SushiGenerator._outside(level.careful, band.careful) <= 0.0 \
 			and level.par >= int(band.par_min) \
@@ -253,7 +274,7 @@ func _worker(index: int, workers: int) -> void:
 			stats.nodes = solver.nodes
 			stats.dead_ends = solver.dead_ends
 		else:
-			stats = SushiGenerator.search(spec)
+			stats = SushiGenerator.search_with_fallback(spec)
 			level = stats.level
 		if level == null:
 			log_file.store_line("L%d: no solvable deal in %d attempts" % [id, SushiGenerator.MAX_ATTEMPTS])

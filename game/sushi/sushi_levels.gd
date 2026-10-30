@@ -1,10 +1,10 @@
 class_name SushiLevels
 extends RefCounted
-## The baked Sushi Loop levels (data/levels/sushi_v2.json, made by tools/levelgen/generate_sushi.gd),
+## The baked Sushi Loop levels (data/levels/sushi_v3.json, made by tools/levelgen/generate_sushi.gd),
 ## loaded once and handed out by number (1-based). Never generated at run time.
 
-const PATH := "res://data/levels/sushi_v2.json"
-const GEN_VERSION: int = 2
+const PATH := "res://data/levels/sushi_v3.json"
+const GEN_VERSION: int = 3
 ## Levels per chapter (the sawtooth repeats every 10).
 const CHAPTER: int = 10
 

@@ -1,9 +1,10 @@
 # Sushi Loop: rules for Claude Code
 
 Sushi Loop is game 2 of the studio plan, started from our mobile game template on 2026-10-25. Rules, API, progression,
-economy and the level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. No shop, daily
-reward, ranks or purchases; coins pay for boosters, and opt-in rewarded videos (continue, ×2 coins, a hint or undo when
-short of coins) go through `Services.ads` (mocks until AdMob is wired). Template core changes made for this game: the
+economy and the level pipeline are the contract in `docs/SUSHI_LOOP.md`: change the rules there first. Coins pay
+for boosters (a coin shop sells packs; no real-money purchases), a daily streak pays coins, no ranks; opt-in rewarded
+videos (continue, ×2 coins, a hint or undo when short of coins, shop coins) go through `Services.ads` (mocks until
+AdMob is wired). Mechanics M1-M3 (covered dishes, rush orders, the chef's special) arrive in chapters 3, 5 and 7. Template core changes made for this game: the
 `sushi` style as the only style, autoload **Sound** (`core/audio/sound.gd`, from Halves; effects may have recorded
 variants `id_1.wav`, `id_2.wav`... picked at random; music on its own two players), `Progress.count()`/`set_count()`
 (named counts: sessions, gifts, dishes seen, tips), `Progress.LEVEL_COUNT_DEFAULT` = 1000. Maaack's PC-oriented
@@ -27,15 +28,15 @@ The human owns fun, feel, art, balance, the store page and release decisions. Cl
   - `dev_tools.gd` autoload **DevTools**: debug-only console commands (`fps`, `log_input`, `display_info`, `safe_area`...).
 - `ui/` the game's screens (`ui/screens/`) and popups (`ui/popups/`); paths in `ui/screens.gd` (`Screens.*`). Edit per game.
   `ui/screens/game.gd` hosts the gameplay: replace its %Board and call `finish(won, stars)`.
-  Flow: splash → level 1 for a player with no win, else home (`main_menu`: the chapter's level road, one Play button)
+  Flow: splash → level 1 for a player with no win, else home (`main_menu`: restaurant card, Play, Levels / How to play / Shop)
   → game → results → Next goes straight into the next level. No level select screen.
 - `assets/icon/`: the app icons (made by `tools/make_icon.gd`).
 - `game/` gameplay scenes and scripts (create per game). `data/` baked levels and configs (create per game).
   This repo: `game/sushi/` (SushiState rules, SushiSolver, SushiBot, SushiRun, SushiDoom, SushiMeta progression,
-  SushiChapters (each chapter's twist), the board, plate, bento and art views, SushiLevelRoad (home's map of a
-  chapter), SushiPalette with the twelve restaurants, SushiNoren, SushiLogo),
+  SushiChapters (each chapter's twist), SushiBoosters (owned undos, hints, continues; the shop's offers),
+  SushiIllustration (How to play pictures), the board, plate, bento and art views, SushiPalette with the twelve restaurants, SushiNoren, SushiLogo),
   `game/kit/` (StateSolver, SolverState, Rack, PathBelt: generic, meant for the template later),
-  `data/levels/sushi_v2.json` (1000 levels baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.gd`;
+  `data/levels/sushi_v3.json` (1000 levels baked by `tools/levelgen/generate_sushi.gd` from `sushi_plan.gd`;
   levels 1-60 frozen in `tools/levelgen/frozen_v1.json`),
   `assets/food/` and `assets/deco/` (Fluent Emoji 3D renders, MIT), `assets/audio/` (Kenney CC0 foley via
   `tools/audio/prepare_foley.sh`, koto cues from `tools/audio/synth_sushi_sfx.gd`, a CC0 music track),
@@ -124,7 +125,7 @@ levels worked by hand in `tests/sushi_helpers.gd`; a second session or the human
   (string values from PowerShell 5.1 lose their quotes: run those edits from Bash as `'"Text"'`)
 - Bake levels: `godot --headless --path . -s tools/levelgen/generate_sushi.gd [-- first last] [--misses]` (one worker
   process per spare core; about 25 min for all 1000; a range or `--misses` keeps the other levels as baked);
-  knob study: `tools/levelgen/bench_sushi.gd`. Ratings and the curve land in `tools/levelgen/reports/sushi_v2.csv`/`.md`.
+  knob study: `tools/levelgen/bench_sushi.gd`. Ratings and the curve land in `tools/levelgen/reports/sushi_v3.csv`/`.md`.
 - Play a level for real (needs a window): `godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]`
   -> frames in `build/playtest/<mode>_<level>/`
 - A new `class_name` fails the hook ("not declared") until `godot --headless --path . --import` refreshes the cache.

@@ -139,15 +139,22 @@ The solver and the bots know every dish (covered or not); only the player is kep
 ## Levels
 
 Levels are generated offline, checked and baked, never generated at run time. **1000 levels in
-100 chapters of ten** (gen_version 2, `data/levels/sushi_v2.json`, about 100 KB: the belt and
-queue are short strings such as `"01.2"`).
+100 chapters of ten** (gen_version 3, `data/levels/sushi_v3.json`, about 180 KB: the belt and
+queue are short strings such as `"01.2"`, a covered plate is a letter, a chef's special `*`).
 
-1. `tools/levelgen/sushi_plan.gd` gives each level its role, knobs (types, bentos, belt length,
-   open, window, counter, preview, spread) and band. Levels 1-60 are frozen from the first bake
-   (`tools/levelgen/frozen_v1.json`, played on phones in 0.3.0); later levels follow their
-   chapter's twists (below).
-2. The generator deals a bento queue and a belt from a seed (`SeedService`), then:
+1. `tools/levelgen/sushi_plan.gd` gives each level its role, knobs (dishes, bentos, belt length,
+   open, window, counter, preview, spread, covered share, rush orders, chef's specials), band and
+   thought rules. Levels 1-2 are the hand-made tutorials (`tools/levelgen/frozen_v1.json`); every
+   other level is dealt, chapter 1 from a small table of gentle knobs (3 then 4 dishes).
+2. The generator deals a bento queue and a belt from a seed (`SeedService`), places the level's
+   specials, cloches and rush limits, then:
    - the solver must find a solution with the level's counter (budget-limited; unknown = reject);
+   - **thought rules:** from level 4 every level but a rest level must defeat both mindless
+     players (always the plate at the window's exit, always the one that just came in); from
+     chapter 5 every super-hard level must also defeat "take what fits, else the bento shown
+     soonest" played perfectly (where no fair deal does, the bake falls back to a classic
+     super-hard level, marked `classic` in the file). From level 4 mindless tapping wins only
+     the rest levels (the breathers);
    - `par` is the smallest counter size that still solves it (unknown = reject);
    - a random-greedy bot (fits first, else random: a careless player) and a careful bot
      (exit-first, preview-aware, slips one take in ten: an attentive player) each play it 200
@@ -155,25 +162,32 @@ queue are short strings such as `"01.2"`).
 3. It keeps the deal nearest the middle of the role's band. When no deal lands in the band, it
    deals again over a grid: the counter 0, -1, +1, -2, +2 from the plan, each with plates in
    good order, mixed, or scrambled (300 deals per try), until one lands; otherwise the nearest
-   miss. Which way helps depends on the twists (one bento and a two-plate window can need plates
-   in better order to get harder), so the grid is tried, not guessed.
-4. After chapter 1, no level except a rest level may be trivial (greedy wins more than 95%), hard
-   and super-hard levels must reward care (careful beats greedy by more than 0.2), and no level is
-   one narrow line (careful wins at least 35%). `tests/test_sushi_levels.gd` checks the bake.
-5. `tools/levelgen/generate_sushi.gd` runs one worker process per spare CPU core (about 25 min for
+   miss. Which way helps depends on the twists, so the grid is tried, not guessed.
+4. Quality rules after chapter 1: no level but a rest level is trivial (greedy wins at most 95%);
+   hard levels reward care (careful beats greedy by more than 0.2); no level but a super-hard one
+   is one narrow line (careful wins at least 35%); a super-hard level defeats the careful rule
+   itself, so only the careful bot's slips win it (at least 15%). `tests/test_sushi_levels.gd`
+   and `tests/test_sushi_contract.gd` check the bake.
+5. `tools/levelgen/generate_sushi.gd` runs one worker process per spare CPU core (about 30 min for
    all 1000 on 14 workers), merges them, and writes the rating CSV and a summary with the curve
-   (`tools/levelgen/reports/sushi_v2.csv`, `.md`). `--misses` bakes again only levels outside their band.
+   (`tools/levelgen/reports/sushi_v3.csv`, `.md`). `--misses` bakes again only levels outside their band.
 
 **Difficulty targets.** Pass = 0.6 × careful + 0.4 × greedy, a rough first-try pass rate for a
-typical player (to be replaced by real per-level pass rates from analytics after launch):
+typical player (to be replaced by real per-level pass rates from analytics after launch). Chapter 1
+uses gentler bands while players learn; a super-hard level before chapter 5 keeps the classic band
+(greedy 0-0.2, careful 0.35-0.75).
 
 | Role | Greedy band | Careful band | Pass about | Tries |
 |---|---|---|---|---|
-| easy | 0.75-0.95 | 0.95-1.0 | 0.93 | 1 |
-| medium | 0.4-0.85 | 0.85-1.0 | 0.8 | 1-2 |
-| hard | 0.1-0.45 | 0.55-0.85 | 0.55 | 2 |
-| super | 0-0.2 | 0.35-0.75 | 0.4 | 2-3 |
+| easy | 0.6-0.95 | 0.9-1.0 | 0.9 | 1 |
+| medium | 0.3-0.8 | 0.75-1.0 | 0.75 | 1-2 |
+| hard | 0.05-0.4 | 0.45-0.85 | 0.55 | 2 |
+| super | 0-0.15 | 0.15-0.6 | 0.2 | 5 |
 | rest | 0.7-1.0 | 0.95-1.0 | 0.93 | 1 |
+
+On a super-hard level the careful rule itself loses, so the careful bot wins only by its random
+slips: its pass estimate (about 0.2, five tries) is a floor. A player who plans ahead, which these
+levels are built for, does better; real pass rates after launch will tell how much.
 
 **Roles per 10 levels** (roller-coaster sawtooth). Slots 5 (hard), 6 (rest), 9 (super-hard) and
 10 (rest) never move; as players grow, easy slots turn medium and a second hard level arrives:
@@ -186,25 +200,34 @@ typical player (to be replaced by real per-level pass rates from analytics after
 | 41-100 | easy medium medium medium **hard** rest medium **hard** **super** rest | 3 |
 
 **Chapter twists** (`SushiChapters`, shown on the card that opens a chapter; the plan reads the
-same ids, so the card tells the truth). Each changes knobs, never rules:
+same ids, so the card tells the truth):
 
 | Twist | Knobs |
 |---|---|
-| learn (ch 1) | 2 → 4 dishes, the hand-made tutorials |
+| learn (ch 1) | 3 then 4 dishes, the hand-made tutorials |
 | more (ch 2) | 5-6 dishes, longer belts |
-| all (ch 3) | all 7 dishes; a two-plate window on some levels |
+| covered (ch 3) | M1: a fixed share of the plates under cloches, 40% at first, 10% more each time round (at most 70%) |
 | narrow | a two-plate window |
-| single | one bento open at a time, one more counter slot |
+| rush (ch 5) | M2: one rush order (7-10 takes), two on hard and super-hard levels (5-8) |
+| single | one bento open at a time, one more counter slot (on easy levels instead all seven dishes and a scrambled belt; rush orders get 3 more takes) |
+| wild (ch 7) | M3: one chef's special, two on hard levels |
 | hidden | no queue preview |
 | long | belts of 27-32 slots |
 | dense | a full belt: no empty slots |
 | tight | one counter slot fewer, three bentos previewed |
-| mixed | each level one of the six above |
+| mixed | each level one of the nine above |
 
-Chapters 1-6: learn, more, all, narrow, single, hidden. From chapter 7 the cycle long, narrow,
-single, hidden, dense, tight, mixed repeats; from chapter 21 each chapter but a mixed one adds a
-second twist that rotates (never hidden with tight). Belts grow a step each time round (at most
-three). Hard and super-hard levels have one counter slot fewer, rest levels one more.
+Chapters 1-8: learn, more, covered, narrow, rush, single, wild, hidden. From chapter 9 the cycle
+long, covered, narrow, rush, single, wild, hidden, dense, tight, mixed repeats; from chapter 21
+each chapter but a mixed one adds a second twist that rotates (never hidden with tight, nor dense
+with single). Belts grow
+a step each time round (at most three). Hard and super-hard levels have one counter slot fewer,
+rest levels one more. From chapter 5 a super-hard level whose twists bring neither rush orders nor
+specials gets pressure of its own: two rush orders (6-9 takes), or from chapter 7 in even chapters
+(and with one bento open) a chef's special; a one-bento super-hard level before chapter 7 stays
+classic. A super-hard level never has fewer than four counter slots (the step-3 grid stops there
+too), at most one chef's special,
+and a long loop of 27-28 slots.
 
 **The reskin trap:** if the greedy bot wins more than 90% of mid-chapter levels, the moving window
 is not creating real choices. The bake summary prints this check.
@@ -258,37 +281,51 @@ Each chapter is a restaurant with its own belt, rail, wood and noren colours (`S
 
 ## Progression (between levels)
 
-- **First launch:** a player who has not won a level goes from the splash straight into level 1;
-  no menu first. Every later launch opens home.
+- **First launch:** a player who has not won a level goes from the splash straight into level 1
+  (guided); no menu first. Every later launch opens home.
+- **Home:** the game's mark and name under the current restaurant's noren curtain; the
+  restaurant as a card (name, twist, stars, levels won; a tap opens its levels); one big Play
+  button for the next level ("Level 15 · Hard" when it is one); then **Levels**, **How to play**
+  and **Shop**. The top bar holds coins, the daily streak, the chef's gift and Settings. Win →
+  Next goes straight into the next level, never through home.
+- **Levels:** every chapter as a row (restaurant colour, name, twist, stars, or a lock); one row
+  open at a time shows its ten levels as tiles with their stars (the next one highlighted);
+  a won level replays on a tap.
+- **How to play:** illustrated cards for the rules, the three special plates and orders (each
+  marked with the chapter that brings it), stars and boosters, and a button that replays the
+  guided first level.
 - **Chapters** of ten levels, each a restaurant: twelve looks (`SushiPalette.SHOPS`) that come round
-  again with a numeral ("Corner Stall II"). Home shows the next level's chapter as a road of
-  plates (`SushiLevelRoad`): won plates with their stars (tap to replay), the next level as the
-  big gold plate, locked plates dimmed, "Hard" and "Super hard" tags so the sawtooth is visible
-  ahead; arrows page back through earlier chapters. One big Play button starts the next level.
-  Win → Next goes straight into the next level, never through home.
+  again with a numeral ("Corner Stall II").
 - **Welcome card:** a chapter's first level (from chapter 2) names the restaurant and its twist,
-  once (`SushiChapters.text()`).
+  once (`SushiChapters.text()`); for chapters 3, 5 and 7 that is the new mechanic.
 - **New on the menu:** the first time a dish rides the belt (from level 2) a card shows it on its
   plate, with its name and a line about it. Once per install.
 - **Star gifts:** every 15 stars opens a gift of 100 coins, right after the win that earned it (or
   from the gift button in home's top bar, whose badge counts the stars still needed).
 - **Chapter bonus:** the first win of a chapter's last level gives 100 coins and a card naming the
   next restaurant.
+- **Daily streak:** the first win of each day counts the streak up and pays 20, 25, 30, 40, 50, 60,
+  then 100 coins on day 7 (and again from day 8); missing a day restarts it. Home's badge shows
+  the streak.
 - **Three-star outlook:** the HUD shows the stars this attempt is on course for; the counter
   marks its first `star_peak` settings with a small gold star.
 - **One-time tips:** the first plate on the counter, the first lost third star.
 
-## Economy (coins; no purchases)
+## Economy (coins; no real-money purchases)
 
-No shop, purchases, daily reward or ranks. Coins are the booster currency: 10 per star, ×1.5 on
-hard levels, ×2 on super-hard levels; star gifts and chapter bonuses as above.
+Coins are the booster currency: 10 per star, ×1.5 on hard levels, ×2 on super-hard levels; star
+gifts, chapter bonuses and the daily streak as above. No ranks.
 
 | Booster | Free per level | Then |
 |---|---|---|
-| Undo (R9) | 1 | 30 coins, or a rewarded video when short of coins |
-| Hint (the solver's next move) | 1 | 30 coins, or a rewarded video when short of coins |
-| Continue after a loss (R8: +2 counter slots) | - | one free rewarded video per attempt, or 50 coins; at most 3 continues per attempt (Retry is always free) |
-| Step back after a doom proof | uses the free undo | 30 coins, or a rewarded video when short of coins |
+| Undo (R9) | 1 | one you own, else 30 coins, else a rewarded video |
+| Hint (the solver's next move) | 1 | one you own, else 30 coins, else a rewarded video |
+| Continue after a loss (R8) | - | one you own, a free rewarded video once per attempt, or 50 coins; at most 3 continues per attempt (Retry is always free) |
+| Step back after a doom proof | uses the free undo | one undo you own, else 30 coins, else a rewarded video |
+
+**Shop** (`SushiBoosters.OFFERS`, from home): 3 undos for 75 coins, 3 hints for 75, 2 continues
+for 90; and 30 free coins for an opt-in video, at most once every 5 minutes. The HUD badges count
+free and owned boosters together.
 
 Levels 1-2 guide the first take: the window frame breathes and the plate that fits glows with a tap ripple.
 
@@ -296,7 +333,7 @@ Levels 1-2 guide the first take: the window frame breathes and the plate that fi
 
 Rewarded, always the player's choice and clearly labelled: the continue (free, once per attempt),
 ×2 coins on the results of a win, a hint or an undo when the player is short of coins (asked in a
-confirm first). Interstitials: none in the first session or before level 8, then at most 1 per 2
+confirm first), coins in the shop. Interstitials: none in the first session or before level 8, then at most 1 per 2
 won levels, 120 s apart, 60 s clear of a rewarded video, only when the results screen of a win
 opens. Never on the fail screen, never on Next / Retry, never during play. No banners. In a
 release build the mock reports no ads ready, so no video offers show until AdMob is wired (phone test
@@ -305,10 +342,10 @@ builds made from the APK preset carry the `test_ads` feature and keep the mock o
 Review: the Play in-app review sheet is requested once, after the first win of level 10 (the end
 of chapter 1); Play decides whether it shows. Never after a loss.
 
-## Later mechanics (one per chapter, not built yet)
+## Later mechanics (not built yet)
 
 Stacked plates (lower plate dimmed), a chef who refills empty slots from a visible tray, a mixed
-bento (3 different types), domed plates that reveal only in the window.
+bento (3 different dishes). (Covered dishes, rush orders and the chef's special are built: M1-M3.)
 
 ## Who owns what
 

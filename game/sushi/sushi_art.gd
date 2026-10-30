@@ -16,10 +16,15 @@ const FOOD: Array[Texture2D] = [
 ]
 ## How big each dish sits on its plate (the renders fill their squares differently).
 const FOOD_SCALE: Array[float] = [1.0, 0.94, 1.1, 1.02, 0.9, 1.0, 1.0]
+## The chef's special (M3): a star on a gold plate, a little smaller than a dish.
+const SPECIAL := preload("res://assets/deco/star.png")
+const SPECIAL_SCALE: float = 0.78
 const OUTLINE: float = 2.5
 
 
 static func food(type: int) -> Texture2D:
+	if type == SushiLevel.WILD:
+		return SPECIAL
 	return FOOD[posmod(type, FOOD.size())]
 
 
@@ -55,9 +60,44 @@ static func draw_plate(ci: CanvasItem, c: Vector2, r: float, type: int, alpha: f
 	draw_food(ci, c + Vector2(0.0, -r * 0.03), r * 1.5, type, alpha)
 
 
+## A plate whose dish is hidden (M1): plain porcelain with a silver rim, no colour or pattern.
+static func draw_blank_plate(ci: CanvasItem, c: Vector2, r: float, alpha: float = 1.0) -> void:
+	ci.draw_circle(c, r, Color(SushiPalette.COVER_RIM, alpha))
+	ci.draw_circle(c, r * 0.76, Color(SushiPalette.PORCELAIN_SHADE, alpha))
+	ci.draw_circle(c + Vector2(-0.02, -0.03) * r, r * 0.71, Color(SushiPalette.PORCELAIN, alpha))
+	ci.draw_arc(c, r, 0.0, TAU, 48, Color(SushiPalette.INK, 0.35 * alpha), 1.5, true)
+
+
+## A silver cloche over a plate of rim radius `r` at `c`; `rise` (0-1) lifts it off and fades it.
+static func draw_cloche(ci: CanvasItem, c: Vector2, r: float, rise: float = 0.0) -> void:
+	var alpha := 1.0 - rise
+	if alpha <= 0.0:
+		return
+	var base := c + Vector2(0.0, r * 0.28 - r * 1.1 * rise)
+	var width := r * 0.86
+	var height := r * 0.95
+	var dome := PackedVector2Array()
+	for i in 25:
+		var a := PI + PI * float(i) / 24.0
+		dome.append(base + Vector2(cos(a) * width, sin(a) * height))
+	ci.draw_colored_polygon(dome, Color("D4D9E1", alpha))
+	ci.draw_polyline(dome, Color(SushiPalette.INK, 0.45 * alpha), 2.0, true)
+	# Shade on the right, a bright streak on the left (light from the top left).
+	var shade := PackedVector2Array()
+	for i in 13:
+		var a := PI * 1.5 + PI * 0.5 * float(i) / 12.0
+		shade.append(base + Vector2(cos(a) * width, sin(a) * height))
+	shade.append(base)
+	ci.draw_colored_polygon(shade, Color(SushiPalette.INK, 0.1 * alpha))
+	ci.draw_arc(base, height * 0.72, PI * 1.12, PI * 1.38, 10, Color(1, 1, 1, 0.75 * alpha), r * 0.09, true)
+	ci.draw_line(base - Vector2(width * 1.06, 0.0), base + Vector2(width * 1.06, 0.0), Color("9AA1AC", alpha), r * 0.12, true)
+	ci.draw_circle(base - Vector2(0.0, height + r * 0.06), r * 0.13, Color("B8BEC8", alpha))
+	ci.draw_circle(base - Vector2(r * 0.03, height + r * 0.09), r * 0.05, Color(1, 1, 1, 0.8 * alpha))
+
+
 ## The dish of `type` in a square of side `s` centred at `c`.
 static func draw_food(ci: CanvasItem, c: Vector2, s: float, type: int, alpha: float = 1.0) -> void:
-	var side := s * FOOD_SCALE[posmod(type, FOOD_SCALE.size())]
+	var side := s * (SPECIAL_SCALE if type == SushiLevel.WILD else FOOD_SCALE[posmod(type, FOOD_SCALE.size())])
 	ci.draw_texture_rect(food(type), Rect2(c - Vector2(side, side) * 0.5, Vector2(side, side)), false,
 			Color(1, 1, 1, alpha))
 

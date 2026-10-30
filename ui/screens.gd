@@ -2,17 +2,20 @@ class_name Screens
 extends RefCounted
 ## Paths of every screen and popup in the UI kit, so code never repeats them.
 ## Screens change with UI.goto(Screens.MAIN_MENU); popups open with UI.open(load(Screens.PAUSE)).
-## Sushi Loop has no shop, daily reward or ranks (see docs/SUSHI_LOOP.md).
+## Sushi Loop has a coin shop and a daily streak, no ranks (see docs/SUSHI_LOOP.md).
 
 const SPLASH: String = "res://ui/screens/splash.tscn"
 const MAIN_MENU: String = "res://ui/screens/main_menu.tscn"
 const GAME: String = "res://ui/screens/game.tscn"
 const CREDITS: String = "res://ui/screens/credits.tscn"
+const LEVELS: String = "res://ui/screens/levels.tscn"
+const HOW_TO_PLAY: String = "res://ui/screens/how_to_play.tscn"
 
 const PAUSE: String = "res://ui/popups/pause_popup.tscn"
 const RESULTS: String = "res://ui/popups/results_popup.tscn"
 const SETTINGS: String = "res://ui/popups/settings_popup.tscn"
 const CONFIRM: String = "res://ui/popups/confirm_popup.tscn"
+const SHOP: String = "res://ui/popups/shop_popup.tscn"
 ## New dish on the menu, a star gift, a chapter finished.
 const REWARD: String = "res://ui/popups/reward_popup.tscn"
 

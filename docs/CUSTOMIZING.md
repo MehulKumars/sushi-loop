@@ -6,7 +6,7 @@ What to change for every game, what you can change if the game needs it, and wha
 
 | What | Where | Notes |
 |---|---|---|
-| Game name | `project.godot` > `config/name` | Shown on the splash (home's title shows the chapter's restaurant instead) |
+| Game name | `project.godot` > `config/name` | Shown on the splash and on home (under the restaurant's noren curtain) |
 | Style | Project Settings > GUI > Theme > Custom | This game's is `sushi` (`core/ui/themes/sushi.tres`, the only style). A new one is made in `core/ui/styles/` and built by `tools/build_theme.gd` ([UI_KIT.md](UI_KIT.md)) |
 | Package name | `export_presets.cfg` > `package/unique_name` (both presets) | For example `com.yourstudio.halves`. Never ship `com.changeme.template`; it can never change after the first upload |
 | App name on the phone | `export_presets.cfg` > `package/name` | |
@@ -26,11 +26,13 @@ What to change for every game, what you can change if the game needs it, and wha
   the results popup, considers an interstitial through `AdPolicy`, and handles Next (straight into
   the next level) / Retry / Home / Continue.
 - `%Goal` and `%MovesLabel` show the bentos packed out of the level's total.
-- `%UndoButton` and `%HintButton` are the boosters: free uses first, then coins (`UNDO_COST`,
-  `HINT_COST`), or a rewarded video when the player is short of coins.
+- `%UndoButton` and `%HintButton` are the boosters: the level's free use first, then one the
+  player owns (`SushiBoosters`, bought in the shop), then coins (`UNDO_COST`, `HINT_COST`), or a
+  rewarded video when the player is short of coins. Their badges count free and owned uses
+  together (the price when none is left). The doom card's Step back costs an undo the same way.
 - `Screens.level` is the level to play; `Progress.LEVEL_COUNT_DEFAULT` (1000) is the number of
-  levels. Sushi Loop's levels, chapters and the home road are described in
-  [SUSHI_LOOP.md](SUSHI_LOOP.md#levels).
+  levels. Sushi Loop's levels and chapters are described in [SUSHI_LOOP.md](SUSHI_LOOP.md#levels),
+  home, Levels and How to play in its Progression section.
 - Back opens the pause popup. Save on `Events.app_paused` if your game holds state that
   `Progress` does not.
 
@@ -40,10 +42,16 @@ What to change for every game, what you can change if the game needs it, and wha
 |---|---|
 | Coins per star | `ui/screens/game.gd` > `COINS_PER_STAR` (more on hard and super-hard levels: `ROLE_BONUS`) |
 | Booster and continue prices | `ui/screens/game.gd` > `UNDO_COST`, `HINT_COST`, `CONTINUE_COST` |
+| Shop packs | `game/sushi/sushi_boosters.gd` > `OFFERS` (kind, amount, price, name) |
+| Shop video | `ui/popups/shop_popup.gd` > `VIDEO_COINS`, `VIDEO_GAP_SECONDS` |
+| Daily streak coins | `core/progress.gd` > `DAILY_REWARDS` (days 1-7; `core/`, so change it on purpose) |
 
-Sushi Loop has no shop, daily reward or purchases (the economy is in
-[SUSHI_LOOP.md](SUSHI_LOOP.md)). `Progress` still has the template's daily streak (`DAILY_REWARDS`)
-and owned items (`owns()`), unused by this game.
+Sushi Loop has no real-money purchases (the economy is in [SUSHI_LOOP.md](SUSHI_LOOP.md)). The
+shop sells booster packs for coins; `SushiBoosters` keeps the boosters a player owns as `Progress`
+counts (`booster_undo`, `booster_hint`, `booster_continue`), and the game spends one after the
+level's free one and before coins or a video. The first win of each day claims the template's
+daily streak (`Progress.claim_daily()`) and shows a reward card. `Progress`'s owned items
+(`owns()`) are unused by this game.
 
 Remove screens you do not need by deleting the scene, its button and its entry in `ui/screens.gd`,
 `tests/test_screens.gd` and `tools/snapshots.gd`.

@@ -9,6 +9,8 @@ const GEN_VERSION: int = SushiPlan.GEN_VERSION
 const RUNS: int = 200
 const SOLVE_BUDGET: int = 150_000
 ## Deals tried per level before keeping the nearest miss.
+## Levels 1..this keep three stars for any clean win.
+const GENTLE_LEVELS: int = 10
 const MAX_ATTEMPTS: int = 900
 ## Stop once this many deals are in the band.
 const ENOUGH: int = 8
@@ -27,7 +29,8 @@ const SPREAD_TRIES: Array[Array] = [[0.1, 0.5], [0.3, 0.8], [0.6, 1.0]]
 const ATTEMPTS_PER_TRY: int = 300
 ## A kept level's careful win rate is never below this (no level is one narrow line).
 const CAREFUL_FLOOR: float = 0.35
-## On hard and super-hard levels the careful bot beats the greedy one by more than this.
+## On hard levels the careful bot beats the greedy one by more than this. (Super-hard levels
+## defeat the careful rule itself: only its slips and a thinking player win them.)
 const CARE_PAYS: float = 0.2
 
 
@@ -41,7 +44,7 @@ static func search(spec: Dictionary) -> Dictionary:
 	for step in COUNTER_STEPS:
 		for spread in SPREAD_TRIES:
 			var counter := int(spec.counter) + step
-			if counter < 3 or counter > 7:
+			if counter < int(spec.get("counter_min", 3)) or counter > 7:
 				continue
 			var variant := spec.duplicate()
 			variant.counter = counter
@@ -53,7 +56,8 @@ static func search(spec: Dictionary) -> Dictionary:
 		var found := _search_round(tries[round_], round_, MAX_ATTEMPTS if round_ == 0 else ATTEMPTS_PER_TRY)
 		attempts += int(found.attempts)
 		var level: SushiLevel = found.level
-		if level != null and level.careful >= CAREFUL_FLOOR and (best.is_empty() or found.miss < best.miss):
+		var floor_ := minf(CAREFUL_FLOOR, float(spec.band.careful[0]))
+		if level != null and level.careful >= floor_ and (best.is_empty() or found.miss < best.miss):
 			best = found
 			best.rounds = round_ + 1
 		if not best.is_empty() and best.miss == 0.0:
@@ -62,6 +66,26 @@ static func search(spec: Dictionary) -> Dictionary:
 		return {"level": null, "nodes": 0, "dead_ends": 0, "attempts": attempts, "in_band": 0, "miss": 0.0, "rounds": tries.size()}
 	best.attempts = attempts
 	return best
+
+
+## search(), and when a super-hard level's thought rule finds no deal at all (the rule of thumb
+## wins every one, or none is fair), the same search as a classic super-hard level, marked
+## `classic` (docs/SUSHI_LOOP.md "Levels" 2). The bake uses this.
+static func search_with_fallback(spec: Dictionary) -> Dictionary:
+	var found := search(spec)
+	var level: SushiLevel = found.level
+	if not spec.get("careful_must_lose", false) or (level != null and float(found.miss) < 1.0):
+		return found
+	var classic := spec.duplicate()
+	classic.careful_must_lose = false
+	classic.band = SushiPlan.CLASSIC_SUPER
+	var second := search(classic)
+	var other: SushiLevel = second.level
+	if other == null or (level != null and float(second.miss) >= float(found.miss)):
+		return found
+	other.classic = true
+	second.attempts = int(found.attempts) + int(second.attempts)
+	return second
 
 
 static func _search_round(spec: Dictionary, round_: int, max_attempts: int = MAX_ATTEMPTS) -> Dictionary:
@@ -83,8 +107,12 @@ static func _search_round(spec: Dictionary, round_: int, max_attempts: int = MAX
 		var solver := StateSolver.run(SushiState.start(level), SOLVE_BUDGET)
 		if solver.status != StateSolver.Status.SOLVED:
 			continue
+		# Cheap and decisive first: a level a mindless player wins is no puzzle.
+		var thought := thought_shortfall(level, spec)
+		if thought > 0.0 and best_score < thought:
+			continue
 		level.greedy = _quick_rate(level, SushiBot.GREEDY, level.seed, band.greedy)
-		var miss := _outside(level.greedy, band.greedy)
+		var miss := _outside(level.greedy, band.greedy) + thought
 		if miss > 0.3 and best_score < INF:
 			continue
 		level.careful = _quick_rate(level, SushiBot.CAREFUL, level.seed + 1, band.careful)
@@ -114,16 +142,17 @@ static func _search_round(spec: Dictionary, round_: int, max_attempts: int = MAX
 	# A miss may carry a quick estimate: rate the keeper in full.
 	best.greedy = SushiBot.win_rate(best, SushiBot.GREEDY, RUNS, best.seed)
 	best.careful = SushiBot.win_rate(best, SushiBot.CAREFUL, RUNS, best.seed + 1)
-	best.star_peak = mini(best.counter, best.par + 1)
+	# Levels 1-GENTLE_LEVELS: any clean win is three stars (docs/SUSHI_LOOP.md "Stars").
+	best.star_peak = best.counter if id <= GENTLE_LEVELS else mini(best.counter, best.par + 1)
 	out.level = best
 	out.miss = maxf(best_score, 0.0)
 	return out
 
 
-## How far a hard or super-hard level falls short of rewarding care (0 when careful play wins
-## more than CARE_PAYS above greedy play, and on other roles).
+## How far a hard level falls short of rewarding care (0 when careful play wins more than
+## CARE_PAYS above greedy play, and on other roles).
 static func _care_shortfall(level: SushiLevel) -> float:
-	if level.role != "hard" and level.role != "super":
+	if level.role != "hard":
 		return 0.0
 	return maxf(0.0, CARE_PAYS + 0.01 - (level.careful - level.greedy))
 
@@ -191,7 +220,59 @@ static func deal(spec: Dictionary, rng: RandomNumberGenerator) -> SushiLevel:
 		next += 1
 	var level := SushiLevel.make(Array(belt), Array(queue), spec.get("open", 2), window, spec.get("counter", 5))
 	level.preview = spec.get("preview", 2)
+	_add_specials(level, spec, rng)
 	return level
+
+
+## The v2 mechanics a spec asks for: "wilds" chef's specials (each takes the place of one plate),
+## a "covers" share of the other plates under cloches, and "rush" rush orders with limits in
+## "rush_limit" [lo, hi] among the bentos that open later. Plates in the first window stay plain.
+static func _add_specials(level: SushiLevel, spec: Dictionary, rng: RandomNumberGenerator) -> void:
+	var slots: Array[int] = []
+	for slot in range(level.window, level.belt.size()):
+		if level.belt[slot] >= 0:
+			slots.append(slot)
+	_shuffle(slots, rng)
+	var wilds := mini(int(spec.get("wilds", 0)), slots.size())
+	for i in wilds:
+		level.belt[slots[i]] = SushiLevel.WILD
+	# Exactly the planned share of the dishes goes under cloches (docs/SUSHI_LOOP.md: 40-70%); a
+	# chef's special is never covered, so it does not count.
+	var share := float(spec.get("covers", 0.0))
+	var covered := mini(roundi(share * (level.plate_count() - wilds)), slots.size() - wilds)
+	for i in range(wilds, wilds + covered):
+		level.covers |= 1 << slots[i]
+	var rushes := int(spec.get("rush", 0))
+	if rushes <= 0:
+		return
+	var limits: Array = spec.get("rush_limit", [6, 9])
+	level.rush.resize(level.bentos.size())
+	level.rush.fill(0)
+	var later: Array[int] = []
+	for index in range(level.open, level.bentos.size()):
+		later.append(index)
+	_shuffle(later, rng)
+	for i in mini(rushes, later.size()):
+		level.rush[later[i]] = rng.randi_range(int(limits[0]), int(limits[1]))
+
+
+static func _shuffle(items: Array[int], rng: RandomNumberGenerator) -> void:
+	for i in range(items.size() - 1, 0, -1):
+		var j := rng.randi_range(0, i)
+		var swap := items[i]
+		items[i] = items[j]
+		items[j] = swap
+
+
+## How far a level falls short of its "needs thought" rules: 1 if a spam player wins it (when the
+## spec has "anti_spam"), plus 1 if the rule of thumb wins it (when "careful_must_lose").
+static func thought_shortfall(level: SushiLevel, spec: Dictionary) -> float:
+	var miss := 0.0
+	if spec.get("anti_spam", false) and (SushiBot.wins(level, SushiBot.SPAM_EXIT) or SushiBot.wins(level, SushiBot.SPAM_ENTRY)):
+		miss += 1.0
+	if spec.get("careful_must_lose", false) and SushiBot.wins(level, SushiBot.CAREFUL_PURE):
+		miss += 1.0
+	return miss
 
 
 ## Rates `level` in place (par, star peak, bot win rates) and returns the search stats:

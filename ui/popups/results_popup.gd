@@ -1,8 +1,8 @@
 extends Modal
 ## End-of-level popup. Call show_win(level, stars, coins, can_double, note) or
-## show_lose(level, cost, affordable, ad_ready) after opening. Closes with "next", "retry", "home",
-## "continue" (two more counter slots for coins) or "continue_ad" (the same after a rewarded
-## video). A win can offer "×2 coins" for a rewarded video: the popup emits double_requested and
+## show_lose(level, cost, affordable, ad_ready, can_continue, rush, owned) after opening. Closes
+## with "next", "retry", "home", "continue" (two more counter slots, or five more takes after a
+## missed rush order: an owned continue or coins) or "continue_ad" (the same after a rewarded video). A win can offer "×2 coins" for a rewarded video: the popup emits double_requested and
 ## the game screen calls doubled(total) when the video paid out. One primary action at a time.
 ## The game screen decides about interstitials when this opens (AdPolicy).
 
@@ -60,24 +60,38 @@ func doubled(total: int) -> void:
 ## cannot afford it, so the offer is clear and never the only way on); with `ad_ready` the same
 ## continue is free after a video. `can_continue` false hides both (the continue cap).
 func show_lose(level: int, cost: int = 0, affordable: bool = false, ad_ready: bool = false,
-		can_continue: bool = true) -> void:
-	%Headline.text = "Counter full"
-	%Message.text = "Level %d. That plate had nowhere to go. Two more counter slots, or try again." % level
+		can_continue: bool = true, rush: bool = false, owned: int = 0) -> void:
+	%Headline.text = "Rush order missed" if rush else "Counter full"
+	if rush:
+		%Message.text = "Level %d. The customer left before the bento was packed. Five more takes, or try again." % level
+	else:
+		%Message.text = "Level %d. That plate had nowhere to go. Two more counter slots, or try again." % level
+	var gain := "+%d takes" % SushiState.RUSH_EXTRA if rush else "+2 slots"
+	_ad_continue.text = "Continue  %s  ·  free video" % gain
 	%Stars.hide()
 	%RewardRow.hide()
 	%NextButton.hide()
 	_double.hide()
 	_ad_continue.visible = can_continue and ad_ready
 	%ContinueButton.visible = can_continue and cost > 0
-	%ContinueButton.text = "Continue  +2 slots  ·  %d" % cost
+	%ContinueButton.text = "Continue  %s  ·  %d" % [gain, cost]
 	%ContinueButton.icon = Icons.COIN
 	%ContinueButton.disabled = not affordable
+	if owned > 0:
+		# A continue the player bought in the shop: it costs nothing more here.
+		%ContinueButton.visible = can_continue
+		%ContinueButton.text = "Continue  %s  ·  %d left" % [gain, owned]
+		%ContinueButton.icon = Icons.PLAY
+		%ContinueButton.disabled = false
+		affordable = true
+		_ad_continue.visible = false
 	# One primary action: the free continue, else the coin continue if affordable, else Retry.
 	var coin_primary: bool = not _ad_continue.visible and affordable and %ContinueButton.visible
 	%ContinueButton.theme_type_variation = &"AccentButton" if coin_primary else &"Button"
 	%RetryButton.theme_type_variation = &"Button" if _ad_continue.visible or coin_primary else &"AccentButton"
 	if not can_continue:
-		%Message.text = "Level %d. That plate had nowhere to go. Have another go: the belt starts fresh." % level
+		%Message.text = "Level %d. %s Have another go: the belt starts fresh." % [level,
+				"The customer left." if rush else "That plate had nowhere to go."]
 
 
 func _on_double() -> void:

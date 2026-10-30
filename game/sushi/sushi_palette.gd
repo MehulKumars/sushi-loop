@@ -56,15 +56,26 @@ const SHOPS: Array[Dictionary] = [
 const NUMERALS: Array[String] = ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"]
 
 
+## The chef's special (M3) wears a gold rim; covered plates a plain silver one.
+const SPECIAL_RIM := Color("D9A43A")
+const COVER_RIM := Color("A9AFB9")
+
+
 static func rim_color(type: int) -> Color:
+	if type == SushiLevel.WILD:
+		return SPECIAL_RIM
 	return RIM_COLORS[posmod(type, RIM_COLORS.size())]
 
 
 static func rim_style(type: int) -> Rim:
+	if type == SushiLevel.WILD:
+		return Rim.DOUBLE
 	return RIM_STYLES[posmod(type, RIM_STYLES.size())]
 
 
 static func type_name(type: int) -> String:
+	if type == SushiLevel.WILD:
+		return "Chef's special"
 	return NAMES[type] if type >= 0 and type < NAMES.size() else "?"
 
 

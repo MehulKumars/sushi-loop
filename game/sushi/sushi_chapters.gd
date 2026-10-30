@@ -1,22 +1,25 @@
 class_name SushiChapters
 extends RefCounted
 ## Each chapter's twist (docs/SUSHI_LOOP.md "Levels"): the knob its levels lean on, named on the
-## card that opens the chapter. Chapters 1-6 teach one twist each; then the twists come round
-## again, and from chapter DOUBLE_FROM two at a time. The level plan (tools/levelgen/sushi_plan.gd)
-## reads the same ids, so the card always tells the truth about the levels behind it.
+## card that opens the chapter. Chapters 1-8 teach one twist each (chapters 3, 5 and 7 bring the
+## new mechanics M1-M3); then the twists come round again, and from DOUBLE_FROM two at a time.
+## The level plan (tools/levelgen/sushi_plan.gd) reads the same ids, so the card always tells the
+## truth about the levels behind it.
 
-const FIRST: Array[StringName] = [&"learn", &"more", &"all", &"narrow", &"single", &"hidden"]
-## After chapter 6, in this order, over and over. "mixed" gives each level one of the others.
-const CYCLE: Array[StringName] = [&"long", &"narrow", &"single", &"hidden", &"dense", &"tight", &"mixed"]
+const FIRST: Array[StringName] = [&"learn", &"more", &"covered", &"narrow", &"rush", &"single", &"wild", &"hidden"]
+## After chapter 8, in this order, over and over. "mixed" gives each level one of the others.
+const CYCLE: Array[StringName] = [&"long", &"covered", &"narrow", &"rush", &"single", &"wild", &"hidden", &"dense", &"tight", &"mixed"]
 ## Twists a "mixed" level (and a second twist) is chosen from.
-const SINGLES: Array[StringName] = [&"long", &"narrow", &"single", &"hidden", &"dense", &"tight"]
+const SINGLES: Array[StringName] = [&"long", &"covered", &"narrow", &"rush", &"single", &"wild", &"hidden", &"dense", &"tight"]
 ## From this chapter on, each chapter (but a mixed one) has a second twist.
 const DOUBLE_FROM: int = 21
 
 const LABELS: Dictionary[StringName, String] = {
 	&"learn": "First shift",
 	&"more": "More dishes",
-	&"all": "All seven dishes",
+	&"covered": "Covered dishes",
+	&"rush": "Rush orders",
+	&"wild": "Chef's special",
 	&"narrow": "Two-plate window",
 	&"single": "One bento at a time",
 	&"hidden": "No peeking",
@@ -28,7 +31,9 @@ const LABELS: Dictionary[StringName, String] = {
 const TEXTS: Dictionary[StringName, String] = {
 	&"learn": "Take plates from the gold window and pack each bento with three of a kind.",
 	&"more": "More dishes ride the belt, and the loops grow longer.",
-	&"all": "All seven dishes. Some nights the window is only two plates wide.",
+	&"covered": "Some plates arrive under a cloche: you only see the dish once it reaches the window.",
+	&"rush": "A rush bento shows a number: pack it within that many takes, or the customer leaves.",
+	&"wild": "The gold plate is the chef's special: it fills a gap in the fullest bento. Take it at the right moment.",
 	&"narrow": "A two-plate window: fewer choices, so each one counts.",
 	&"single": "One bento open at a time. The counter has more room to help.",
 	&"hidden": "No peeking: the next bentos stay hidden until they open.",
@@ -37,8 +42,9 @@ const TEXTS: Dictionary[StringName, String] = {
 	&"tight": "A small counter, but you can see three bentos ahead.",
 	&"mixed": "A little of everything: each table has its own rule.",
 }
-## Pairs that pull a knob two ways (tight shows three bentos, hidden none), never doubled up.
-const CLASHES: Array[Array] = [[&"hidden", &"tight"]]
+## Pairs never doubled up: tight shows three bentos and hidden none; a full belt with one bento
+## open leaves no fair deal that also beats mindless tapping.
+const CLASHES: Array[Array] = [[&"hidden", &"tight"], [&"dense", &"single"]]
 
 
 ## The twists of 1-based `chapter`: one, or two from DOUBLE_FROM on.

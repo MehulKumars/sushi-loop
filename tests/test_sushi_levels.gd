@@ -1,5 +1,5 @@
 extends GutTest
-## The baked levels (data/levels/sushi_v2.json) against docs/SUSHI_LOOP.md "Levels" and "Stars".
+## The baked levels (data/levels/sushi_v3.json) against docs/SUSHI_LOOP.md "Levels" and "Stars".
 
 const COUNT: int = 1000
 
@@ -84,11 +84,27 @@ func test_no_reskin_trap() -> void:
 	assert_lt(total / count, 0.9)
 
 
+## No level is one narrow line (a super-hard level defeats the careful rule itself, so only its
+## slips win it: at least 15%), and on hard levels thinking pays.
 func test_hard_levels_reward_care() -> void:
 	for level in SushiLevels.all():
-		assert_gte(level.careful, 0.35, "level %d: not one narrow line" % level.id)
-		if level.role == "hard" or level.role == "super":
+		var floor_ := 0.15 if level.role == "super" else 0.35
+		assert_gte(level.careful, floor_, "level %d: not one narrow line" % level.id)
+		if level.role == "hard":
 			assert_gt(level.careful, level.greedy + 0.2, "level %d: thinking must pay" % level.id)
+
+
+## docs/SUSHI_LOOP.md "Levels" 2: mindless tapping wins no level after the tutorials (rest levels
+## aside), and from chapter 5 "take what fits" played perfectly loses every super-hard level the
+## plan marks, unless the bake fell back to a classic super-hard level (marked `classic`).
+func test_no_level_plays_itself() -> void:
+	for level in SushiLevels.all():
+		var spec := SushiPlan.spec(level.id)
+		if spec.get("anti_spam", false):
+			assert_false(SushiBot.wins(level, SushiBot.SPAM_EXIT), "level %d falls to tapping the exit plate" % level.id)
+			assert_false(SushiBot.wins(level, SushiBot.SPAM_ENTRY), "level %d falls to tapping the entry plate" % level.id)
+		if spec.get("careful_must_lose", false) and not level.classic:
+			assert_false(SushiBot.wins(level, SushiBot.CAREFUL_PURE), "level %d falls to the rule of thumb" % level.id)
 
 
 func test_sizes_in_range() -> void:
@@ -100,22 +116,7 @@ func test_sizes_in_range() -> void:
 		assert_between(level.preview, 0, 3)
 
 
-## Chapters 4-6 each lean on one knob (docs/SUSHI_LOOP.md "Levels"): mostly a two-plate window, one
-## bento open at a time, no queue preview.
-func test_late_chapters_have_their_twist() -> void:
-	var twists := {4: func(l: SushiLevel) -> bool: return l.window == 2,
-			5: func(l: SushiLevel) -> bool: return l.open == 1,
-			6: func(l: SushiLevel) -> bool: return l.preview == 0}
-	for chapter: int in twists:
-		var levels := SushiMeta.chapter_range(chapter)
-		var with_twist := 0
-		for id in range(levels.x, levels.y + 1):
-			if (twists[chapter] as Callable).call(SushiLevels.level(id)):
-				with_twist += 1
-		assert_gte(with_twist, 5, "chapter %d: most levels carry the twist" % chapter)
-
-
-## From chapter 7 on, every level carries its chapter's twist(s) (SushiChapters), so the card that
+## From chapter 3 on, every level carries its chapter's twist(s) (SushiChapters), so the card that
 ## opens the chapter tells the truth. A mixed chapter gives each level one twist of its own.
 func test_every_later_level_has_the_twist_its_chapter_names() -> void:
 	var checks := {
@@ -125,10 +126,13 @@ func test_every_later_level_has_the_twist_its_chapter_names() -> void:
 		&"long": func(l: SushiLevel) -> bool: return l.belt.size() >= 27,
 		&"dense": func(l: SushiLevel) -> bool: return l.belt.size() == l.plate_count(),
 		&"tight": func(l: SushiLevel) -> bool: return l.preview == 3,
+		&"covered": func(l: SushiLevel) -> bool: return l.covers != 0,
+		&"rush": func(l: SushiLevel) -> bool: return l.has_rush(),
+		&"wild": func(l: SushiLevel) -> bool: return l.wild_count() > 0,
 	}
 	for level in SushiLevels.all():
 		var chapter := SushiLevels.chapter(level.id)
-		if chapter <= SushiChapters.FIRST.size():
+		if chapter < 3:
 			continue
 		var twists := SushiChapters.twists(chapter)
 		if twists.has(&"mixed"):

@@ -8,7 +8,7 @@ extends RefCounted
 ## Sushi Loop ships 1000 baked levels (SushiLevels.count(); tests/test_sushi_screens.gd keeps the two equal).
 const LEVEL_COUNT_DEFAULT: int = 1000
 ## Coins for day 1..7 of the daily reward; day 7 is the big one, then the cycle restarts.
-const DAILY_REWARDS: Array[int] = [50, 75, 100, 150, 200, 300, 500]
+const DAILY_REWARDS: Array[int] = [20, 25, 30, 40, 50, 60, 100]
 
 static var path: String = SaveStore.DEFAULT_PATH
 static var _data: Dictionary = {}

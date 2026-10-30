@@ -256,6 +256,7 @@ func _belt_plate_near(point: Vector2) -> bool:
 
 
 func _process(_delta: float) -> void:
+	_pulse_rush_alarms()
 	if _busy or run == null or _doom.verdict != SushiDoom.Verdict.SEARCHING:
 		return
 	match _doom.tick():
@@ -309,11 +310,16 @@ func _playback(events: Array[Dictionary]) -> void:
 				await _open(int(e.slot), int(e.bento))
 			&"lost":
 				_overflow(int(e.plate))
+			&"reveal":
+				_reveal(int(e.plate))
+			&"rush_out":
+				_rush_out(int(e.slot))
 	await _await_flights()
 	if _belt_tween != null and _belt_tween.is_running():
 		await _belt_tween.finished
 	_arrange_counter()
 	_show_previews(run.state.next_bento)
+	_update_rush()
 	if _closes >= 2:
 		_show_combo(_closes)
 	_busy = false
@@ -389,6 +395,7 @@ func _rebuild() -> void:
 			bento.set_cell(cell, state.plate_type(plate) if plate >= 0 else -1)
 		bento.visible = bento.want >= 0
 	_show_previews(state.next_bento)
+	_update_rush()
 	_layout()
 	_settle()
 
@@ -397,6 +404,7 @@ func _new_plate(plate: int) -> SushiPlateView:
 	var view := SushiPlateView.new()
 	view.plate = plate
 	view.type = run.state.plate_type(plate)
+	view.cover = 1.0 if run.state.is_covered(plate) else 0.0
 	view.radius = PLATE_RADIUS
 	_plate_layer.add_child(view)
 	return view
@@ -520,6 +528,8 @@ func _show_previews(first: int) -> void:
 		_previews.pop_back().queue_free()
 	for i in _previews.size():
 		_previews[i].want = state.queue[first + i]
+		var limit := run.level.rush_of(first + i)
+		_previews[i].rush = limit if limit > 0 else -1
 		_previews[i].modulate.a = 0.9
 		if i < _preview_points.size():
 			_previews[i].position = _preview_points[i]
@@ -678,6 +688,8 @@ func _open(slot: int, index: int) -> void:
 	bento.ribbon = 0.0
 	bento.clear_cells()
 	bento.want = run.state.queue[index]
+	var limit := run.level.rush_of(index)
+	bento.rush = limit if limit > 0 else -1
 	bento.modulate.a = 1.0
 	var from := _preview_points[0] if not _preview_points.is_empty() else _bento_points[slot] + Vector2(0, -40)
 	bento.position = from
@@ -706,6 +718,57 @@ func _overflow(plate: int) -> void:
 			nudge.tween_property(counter_plate, ^"position:x", x + 4.0, 0.05)
 			nudge.tween_property(counter_plate, ^"position:x", x - 4.0, 0.08)
 			nudge.tween_property(counter_plate, ^"position:x", x, 0.05)
+
+
+## M1: a covered plate reached the window; its cloche lifts away.
+func _reveal(plate: int) -> void:
+	var view: SushiPlateView = _plates.get(plate)
+	if view == null:
+		return
+	SushiSfx.play(&"reveal")
+	if Juice.motion_scale <= 0.0:
+		view.cover = 0.0
+		return
+	var tween := view.create_tween()
+	tween.tween_property(view, ^"cover", 0.0, 0.32 / _speed).set_ease(Tween.EASE_OUT)
+
+
+## M2: the rush order in `slot` ran out; its bento shakes and the level is lost.
+func _rush_out(slot: int) -> void:
+	if slot < 0 or slot >= _bentos.size():
+		return
+	var bento := _bentos[slot]
+	bento.rush = 0
+	Haptics.pulse(80, 0.7)
+	if Juice.motion_scale > 0.0:
+		var x := bento.position.x
+		var shake := bento.create_tween()
+		for dx: float in [10.0, -10.0, 6.0, 0.0]:
+			shake.tween_property(bento, ^"position:x", x + dx * Juice.motion_scale, 0.05)
+
+
+## The rush badges follow the state; a warning plays the moment one drops to its alarm.
+func _update_rush() -> void:
+	var state := run.state
+	for slot in _bentos.size():
+		var left := state.rush_of(slot)
+		var bento := _bentos[slot]
+		if left >= 0 and left <= SushiBentoView.RUSH_ALARM and (bento.rush < 0 or bento.rush > left):
+			SushiSfx.play(&"warn")
+			Haptics.pulse(30, 0.5)
+		bento.rush = left
+		if left < 0 or left > SushiBentoView.RUSH_ALARM:
+			bento.alarm = 0.0
+
+
+## Urgent rush badges pulse, once a second (still with Reduce Motion: the colour carries it).
+func _pulse_rush_alarms() -> void:
+	if Juice.motion_scale <= 0.0:
+		return
+	var phase := fmod(Time.get_ticks_msec() / 1000.0, 1.0)
+	for bento in _bentos:
+		if bento.rush >= 0 and bento.rush <= SushiBentoView.RUSH_ALARM:
+			bento.alarm = phase
 
 
 ## The last bento is packed: sakura petals drift down over the counter.

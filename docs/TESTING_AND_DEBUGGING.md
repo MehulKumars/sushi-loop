@@ -22,7 +22,7 @@ Tests live in `tests/`, named `test_*.gd`:
 | File | Covers |
 |---|---|
 | `test_theme.gd` | The style (`sushi`, the only one): tokens present, WCAG AA text contrast (cards, background, every button state), 48 dp buttons, switches and sliders |
-| `test_screens.gd` | Every screen and popup at 720×1280, 720×1600 and 960×1280: tappable controls at least 96 px, on screen, not overlapping; home shows the next level's chapter as a road of plates and a "Level N" Play button; a new player starts in level 1; the doom card fits every size; credits carry the licence texts and no tappable links |
+| `test_screens.gd` | Every screen and popup (Levels, How to play and the shop included) at 720×1280, 720×1600 and 960×1280: tappable controls at least 96 px, on screen, not overlapping; home's Play button says "Level N" for the next level and home links Levels, How to play and Shop; Levels lists every chapter and opens the next level's with its tiles unlocked up to that level; a new player starts in level 1; the doom card fits every size; credits carry the licence texts and no tappable links |
 | `test_ui.gd` | Only the `sushi` style is listed and applies, Back closes only the top popup (and not the results popup), confirm answers, button squash and its Reduce Motion and opt-out, focus rings after touch vs keys, Back key mapped to `ui_cancel` |
 | `test_progress.gd` | Best stars, unlocks, coins, purchases, reload, daily streak (same day, next day, missed day, 7-day cycle, month ends) |
 | `test_responsive.gd` | Grid columns per width, the max-width column, simulated safe-area insets |
@@ -33,7 +33,7 @@ Tests live in `tests/`, named `test_*.gd`:
 | `test_save_store.gd` | Round trip, missing file, corrupt file |
 | `test_app_lifecycle.gd` | Settings (in a test copy of `settings.cfg`) applied to Juice and Haptics, kept across a restart, volume reaching the audio bus; lifecycle signals reach Events |
 | `test_juice.gd` | Effects settle back to rest scale, including rapid retriggers; reduced motion |
-| `test_sushi_*.gd`, `test_state_solver.gd`, `test_rack.gd` | Sushi Loop's rules, solver, bots, progression, the baked levels and the board played through taps, plus the generic solver and rack in `game/kit/` (see [SUSHI_LOOP.md](SUSHI_LOOP.md)) |
+| `test_sushi_*.gd`, `test_state_solver.gd`, `test_rack.gd` | Sushi Loop's rules (the special plates and orders M1-M3 in `test_sushi_mechanics.gd`), solver, bots, progression, the baked levels (`test_sushi_levels.gd` also checks that no level plays itself: see [SUSHI_LOOP.md](SUSHI_LOOP.md#levels)) and the board played through taps, plus the generic solver and rack in `game/kit/` (see [SUSHI_LOOP.md](SUSHI_LOOP.md)) |
 
 Run them:
 ```powershell
@@ -76,6 +76,15 @@ Play a level for real with injected taps (also a small real window, frames in
 `build/playtest/<mode>_<level>/`):
 ```powershell
 godot --path . -s tools/sushi_playtest.gd -- <level> solve|doom|lose [still]
+godot --path . -s tools/sushi_playtest.gd -- <level> watch [seconds]
+```
+`watch` plays the solver's line slowly for a person to follow (2 s after each take unless
+`seconds` says otherwise, each move printed), saves no frames, and stays open until the window is
+closed.
+
+Open any level straight from launch in a debug build (the splash skips home):
+```powershell
+godot --path . -- --level 769
 ```
 
 Change scene properties without opening the editor (Godot writes the file, then the tool reloads it
@@ -108,8 +117,9 @@ Debug builds only (disabled in release; `addons/limbo_console.cfg`).
 |---|---|
 | OnePlus 10R (CPH2423), Android 15, MediaTek Dimensity 8100, Mali-G610, 1080×2412, 8 GB | Every screen and popup, all five styles switched live, Back on every screen and popup, drag-scrolling the shop and credits from buttons and text (no accidental purchases or links), launch shows only the app icon then the title splash, pause and resume, win and lose, rewarded continue, coin purchase, daily reward, scrolling. Cold start to first frame 0.85-1.1 s. 60 fps on every screen including Neon Arcade's animated grid (the phone runs this app at 60 Hz), 28-31 draw calls, about 50 MB engine memory (274 MB process PSS). No script errors in the log. The camera hole (top 96 px) and gesture bar are kept clear |
 
-This row is the template's own device test and predates Sushi Loop: the five styles, the shop,
-coin purchases and the daily reward it mentions have since been removed.
+This row is the template's own device test and predates Sushi Loop: the five styles, the
+template's shop with its coin purchases and its daily reward popup have since been removed.
+Sushi Loop's booster shop (coins only) and daily streak are newer and were not part of it.
 
 Not yet tested: a low-end phone (Adreno GPU, 2-3 GB RAM), a tablet, Android 10-12.
 

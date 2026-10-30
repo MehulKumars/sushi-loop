@@ -1,7 +1,7 @@
 extends Screen
 ## Game screen: one Sushi Loop level (SushiBoard: the belt loop, bentos and counter), the HUD
 ## (pause, level, coins, bentos packed and the stars this attempt is on course for), Undo and Hint
-## in the bottom corners, the doom card (a free step back or a retry once the solver proves the level lost)
+## in the bottom corners, the doom card (a step back for an undo, or a retry, once the solver proves the level lost)
 ## and the end flow: results, then the first-time rewards (chapter bonus, star gifts), then
 ## next / retry / home; after a loss a continue with two more counter slots, free after a
 ## rewarded video or for coins. Firsts are explained once: a new dish gets its card, the counter
@@ -20,6 +20,7 @@ const FREE_HINTS: int = 1
 ## These levels guide the first take (the pick window and the plate that fits glow).
 const GUIDED_LEVELS: int = 2
 const GIFT_ART := preload("res://assets/deco/gift.png")
+const STREAK_ART := preload("res://assets/deco/tea.png")
 const LANTERN_ART := preload("res://assets/deco/lantern.png")
 
 ## Shared across levels so ad pacing (first session free, gaps, caps) works for the whole run.
@@ -130,7 +131,8 @@ func _finish_lost() -> void:
 		_results = UI.open(load(Screens.RESULTS) as PackedScene)
 		var run := _board.run
 		_results.call(&"show_lose", _level, CONTINUE_COST, Progress.coins() >= CONTINUE_COST,
-				not _ad_continue_used and Services.ads.is_rewarded_ready("continue"), run.continues < MAX_CONTINUES)
+				not _ad_continue_used and Services.ads.is_rewarded_ready("continue"), run.continues < MAX_CONTINUES,
+				run.state.lost_reason == &"rush", SushiBoosters.owned(SushiBoosters.CONTINUE))
 		Events.results_shown.emit(str(_level), false)
 		var choice: Variant = await _results.closed
 		_results = null
@@ -141,7 +143,7 @@ func _finish_lost() -> void:
 				return
 			continue
 		if choice == "continue":
-			if Progress.spend_coins(CONTINUE_COST):
+			if SushiBoosters.use(SushiBoosters.CONTINUE) or Progress.spend_coins(CONTINUE_COST):
 				_resume_after_continue()
 				return
 			continue
@@ -161,7 +163,7 @@ func _go(choice: Variant) -> void:
 	match choice:
 		"next":
 			if _level >= SushiLevels.count():
-				# The very last level: home shows the whole road won.
+				# The very last level: back home, every level won.
 				UI.goto(Screens.MAIN_MENU)
 				return
 			Screens.level = _level + 1
@@ -190,6 +192,14 @@ func _rewards(first_win: bool) -> void:
 		var card := UI.open(load(Screens.REWARD) as PackedScene)
 		card.call(&"show_gift", "A gift from the chef", "%d stars collected" % (Progress.count("gifts") * SushiMeta.GIFT_EVERY),
 				"Coins for hints, undos and continues.", GIFT_ART, coins)
+		await card.closed
+	# The daily streak: the first win of each day counts it up and pays the day's coins.
+	if Progress.daily_status().can_claim:
+		var streak_coins := Progress.claim_daily()
+		var days := int(Progress.daily_status().streak)
+		var card := UI.open(load(Screens.REWARD) as PackedScene)
+		card.call(&"show_gift", "Daily streak", "%d day%s in a row" % [days, "" if days == 1 else "s"],
+				"Win a level every day: the streak pays more up to day 7.", STREAK_ART, streak_coins)
 		await card.closed
 	%Coins.value = Progress.coins()
 	# The Play review sheet once, after the first chapter is done (a happy moment; Play decides
@@ -244,6 +254,9 @@ func _on_undo() -> void:
 		return
 	if run.undos_left() > 0:
 		_board.undo()
+	elif SushiBoosters.owned(SushiBoosters.UNDO) > 0:
+		if _board.undo(true):
+			SushiBoosters.use(SushiBoosters.UNDO)
 	elif Progress.coins() >= UNDO_COST:
 		Progress.spend_coins(UNDO_COST)
 		_board.undo(true)
@@ -259,19 +272,27 @@ func _on_undo() -> void:
 func _on_hint() -> void:
 	if _finished or _board.is_busy():
 		return
-	var paid := _hints_left <= 0
-	if paid and Progress.coins() < HINT_COST:
-		if not await _offer_video("A free hint", "hint"):
-			return
-		paid = false
+	# The free hint first, then an owned one, then coins, then a video.
+	var pay := &"video"
+	if _hints_left > 0:
+		pay = &"free"
+	elif SushiBoosters.owned(SushiBoosters.HINT) > 0:
+		pay = &"owned"
+	elif Progress.coins() >= HINT_COST:
+		pay = &"coins"
+	if pay == &"video" and not await _offer_video("A free hint", "hint"):
+		return
 	if not _board.hint():
 		_show_doom_card()
 		return
-	if _hints_left > 0:
-		_hints_left -= 1
-	elif paid:
-		Progress.spend_coins(HINT_COST)
-		%Coins.set_value(Progress.coins())
+	match pay:
+		&"free":
+			_hints_left -= 1
+		&"owned":
+			SushiBoosters.use(SushiBoosters.HINT)
+		&"coins":
+			Progress.spend_coins(HINT_COST)
+			%Coins.set_value(Progress.coins())
 	_refresh()
 
 
@@ -293,8 +314,11 @@ func _refresh() -> void:
 	bar.max_value = total
 	var tween := create_tween()
 	tween.tween_property(bar, ^"value", float(state.closed), 0.25 * Juice.motion_scale)
-	_undo_badge.text = str(_board.run.undos_left()) if _board.run.undos_left() > 0 else str(UNDO_COST)
-	_hint_badge.text = str(_hints_left) if _hints_left > 0 else str(HINT_COST)
+	# Free and owned boosters count together; with none left the badge shows the coin price.
+	var undos := _board.run.undos_left() + SushiBoosters.owned(SushiBoosters.UNDO)
+	var hints := _hints_left + SushiBoosters.owned(SushiBoosters.HINT)
+	_undo_badge.text = str(undos) if undos > 0 else str(UNDO_COST)
+	_hint_badge.text = str(hints) if hints > 0 else str(HINT_COST)
 	var outlook := _board.star_outlook()
 	if outlook < _outlook:
 		_stars.pivot_offset = _stars.size * 0.5
@@ -411,7 +435,7 @@ func _pause() -> void:
 			UI.goto(Screens.MAIN_MENU)
 
 
-## The doom card sits over the bentos so the window stays in reach: step back (free), retry the
+## The doom card sits over the bentos so the window stays in reach: step back (an undo), retry the
 ## level from the start, or keep going.
 func _build_doom_card() -> void:
 	var holder := MarginContainer.new()
@@ -466,7 +490,8 @@ func _show_doom_card() -> void:
 	if _finished:
 		return
 	_hide_banner()
-	_step_back.text = "Step back" if _board.run.undos_left() > 0 else "Step back  ·  %d" % UNDO_COST
+	var free := _board.run.undos_left() + SushiBoosters.owned(SushiBoosters.UNDO) > 0
+	_step_back.text = "Step back" if free else "Step back  ·  %d" % UNDO_COST
 	_doom_card.show()
 	Juice.pop(_doom_card, 1.04, 0.16)
 
@@ -483,6 +508,10 @@ func _on_step_back() -> void:
 	if _board.run.undos_left() > 0:
 		if not _board.rewind():
 			return
+	elif SushiBoosters.owned(SushiBoosters.UNDO) > 0:
+		if not _board.rewind(true):
+			return
+		SushiBoosters.use(SushiBoosters.UNDO)
 	elif Progress.coins() >= UNDO_COST:
 		if not _board.rewind(true):
 			return

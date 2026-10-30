@@ -10,7 +10,7 @@ most of this audience. Puzzle players skew 35+, so readable text and generous to
 | Large touch targets | every theme (`tools/build_theme.gd`) | Every button, switch, slider and tile is at least 96 px on the 720 px canvas (= Android's 48 dp minimum, which also meets Apple's 44 pt and WCAG 2.2's 24 px). Checked for every style by `tests/test_theme.gd` and on every screen at three sizes by `tests/test_screens.gd` |
 | Text contrast | every theme | WCAG AA: 4.5:1 for normal text, 3:1 for large text, in the `sushi` style, the game's only one (`tests/test_theme.gd`). Outlined text is measured against its outline |
 | Readable text | every theme | 32 px body text (16 dp on a 360 dp phone), 26 px minimum for captions |
-| State not by colour alone | switches, the home road | Switches change knob size and position; on the road, won plates show their stars, the next level is the bigger plate, hard levels carry a written tag and locked plates are faded |
+| State not by colour alone | switches, level tiles, the special plates | Switches change knob size and position. Level tiles show their stars or a lock, and the next level's tile its number without stars; locked chapters carry a lock and are faded; the Play button names hard levels in words ("Level 15 · Hard"). In play, a covered plate wears a cloche, the chef's special is a star on a gold plate, and a rush order's badge shows the takes left as a number (it also turns vermillion from two takes left) |
 | Reduce Motion | Settings; `AppLifecycle`, `Juice.motion_scale` | Turns off button squash, popup pop-ins, the logo intro, Play button breathing, star pops, coin count-ups and background drift. Your own effects must check `Juice.motion_scale` too |
 | Vibration toggle | Settings; `Haptics.enabled` | Haptics can be turned off; never the only signal |
 | Notch-safe layout | `SafeAreaMargin` on every screen and popup | Keeps UI clear of camera holes, rounded corners and the gesture bar |
@@ -19,6 +19,7 @@ most of this audience. Puzzle players skew 35+, so readable text and generous to
 | Interruptions | `AppLifecycle` > `Events.app_paused` | Progress saves on every change; pause state is restored when popups close |
 | Separate volume controls | Settings | Music and Sound sliders, plus quick toggles in the pause menu |
 | Offline play | design | Everything except ads works offline |
+| Rules to look up | How to play (from home) | Short illustrated cards for each rule and special plate, and a button that replays the guided first level |
 
 ## Each game must still do
 

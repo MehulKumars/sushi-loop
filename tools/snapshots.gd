@@ -15,7 +15,7 @@ const SETTLE_FRAMES: int = 40
 const TestWindow := preload("res://tools/test_window.gd")
 const SIZE_PRESETS: Array[Vector2i] = [Vector2i(720, 1280), Vector2i(720, 1600), Vector2i(960, 1280), Vector2i(1080, 1280)]
 const SCREENS: PackedStringArray = [
-	"splash", "main_menu", "game", "pause", "results_win", "results_lose", "settings",
+	"splash", "main_menu", "levels", "how_to_play", "shop", "game", "pause", "results_win", "results_lose", "settings",
 	"confirm", "credits", "dish", "gift",
 ]
 
@@ -199,6 +199,18 @@ func _show_results_lose() -> bool:
 
 func _show_settings() -> bool:
 	return await _show_main_menu() and _popup(Screens.SETTINGS) != null
+
+
+func _show_levels() -> bool:
+	return await _open(Screens.LEVELS)
+
+
+func _show_how_to_play() -> bool:
+	return await _open(Screens.HOW_TO_PLAY)
+
+
+func _show_shop() -> bool:
+	return await _show_main_menu() and _popup(Screens.SHOP) != null
 
 
 

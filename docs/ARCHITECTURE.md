@@ -168,7 +168,9 @@ corrupts it. Every save carries a `version`; bump `CURRENT_VERSION` and add a st
 when the layout changes. A corrupt file loads as a fresh save with a warning.
 
 **Progress** (`core/progress.gd`) is the template's player progress on top of SaveStore: best stars
-per level, unlocks, coins, owned items and the daily reward streak, saved on every change. It
+per level, unlocks, coins, owned items, the daily reward streak (`daily_status()`,
+`claim_daily()`, coins per day in `DAILY_REWARDS`) and named counts (`count()`, `set_count()`:
+sessions, tips shown, Sushi Loop's owned boosters), saved on every change. It
 replaces Maaack's `GameState` (removed), which saved Resource files that can carry injected
 scripts. Tests point `Progress.path` at a temporary file. Its re-read function is
 `load_from_disk()`: a static function named `reload()` would be shadowed by `Script.reload()`.
@@ -197,7 +199,7 @@ scripts. Tests point `Progress.path` at a temporary file. Its re-read function i
 ### UI kit (`core/ui/`, `ui/`)
 One style, `sushi` (`core/ui/styles/sushi.tres`, built into `core/ui/themes/sushi.tres` by
 `tools/build_theme.gd`), the `UI` autoload, `Screen` and `Modal` base classes, responsive
-containers, widgets and the game's nine screens and popups. Everything is in [UI_KIT.md](UI_KIT.md).
+containers, widgets and the game's twelve screens and popups. Everything is in [UI_KIT.md](UI_KIT.md).
 
 ### DevTools (`core/dev_tools.gd`)
 Debug builds only. Open the console with `` ` `` on PC or a three-finger tap on a phone.
