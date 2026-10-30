@@ -50,14 +50,40 @@ left the slot stays empty.
 
 R7. **Win.** The level is won when every bento has closed. (Then the belt and counter are empty.)
 
-R8. **Continue.** After a loss, a continue adds 2 counter slots, puts the held plate on the
-counter and advances the belt (R5). It is offered as an opt-in rewarded video, never paid.
+R8. **Continue.** After an overflow, a continue adds 2 counter slots, puts the held plate on the
+counter and advances the belt (R5); after a missed rush order (M2) it gives that bento 5 more takes.
+It is offered as an opt-in rewarded video (or 50 coins).
 
 R9. **Undo.** Undo restores the state before the last take (including the counter peak). One free
 undo per level. Stepping back after the doom detector's proof (below) costs an undo the same way: the
 free one first, then 30 coins or a rewarded video. Retry is always free, so losing is real but fair.
 
 Invariant: after every take no counter plate matches an open bento (R4.1 and R6 send them in).
+
+### Special plates and orders (v2)
+
+Three mechanics arrive one chapter at a time (see "Chapter twists"), each opened by a card that
+explains it. They give the order of takes real weight: tapping the same spot, or "always take
+what fits", stops working.
+
+M1. **Covered dish.** A covered plate carries a silver cloche: its dish (and rim) cannot be seen
+until the plate first enters the window; then the cloche lifts for good. Nothing else changes
+(routing, solver). Data: the belt string writes a covered plate of type `t` as the letter
+`"abcdefg"[t]`.
+
+M2. **Rush order.** A bento may be a rush order with a limit `L` (shown on it). From the take
+after it opens, each take lowers its count by one while it is still open; if a take (after the
+belt has moved) leaves an open rush bento at 0, the level is **lost** (the customer leaves). A
+bento that closes on its last take is in time. A continue after a rush loss gives that bento 5
+more takes. Data: `rush`, one limit per queued bento (0 = no rush); left out when no bento rushes.
+
+M3. **Chef's special.** A wild plate (type 7, written `*`) fits any open bento: it goes into the
+open bento holding the most plates (ties: the lower slot) and counts as that bento's dish. It
+never goes on the counter. Each wild plate stands in for one plate of some bento's dish, so per
+type `plates(t) <= 3 × bentos(t)` and `plates + wilds = 3 × bentos`: taken at the wrong time it
+fills the wrong bento, and a plate of the dish it replaced is left with nowhere to go.
+
+The solver and the bots know every dish (covered or not); only the player is kept guessing.
 
 ### API (what tests may call)
 

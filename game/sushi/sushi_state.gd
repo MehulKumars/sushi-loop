@@ -1,11 +1,15 @@
 class_name SushiState
 extends SolverState
-## The Sushi Loop rules (docs/SUSHI_LOOP.md R1-R8) for one level: a belt of plates that steps on
-## every take, open bentos fed from a queue, and the counter (a Rack of plate ids). Copyable and
-## searchable by StateSolver. With `record` on, take() and continue_game() log events for the view.
+## The Sushi Loop rules (docs/SUSHI_LOOP.md R1-R8, M1-M3) for one level: a belt of plates that
+## steps on every take, open bentos fed from a queue (some of them rush orders), covered dishes,
+## chef's specials, and the counter (a Rack of plate ids). Copyable and searchable by StateSolver.
+## With `record` on, take() and continue_game() log events for the view.
 
 const NONE: int = -1
 const BENTO_SIZE: int = 3
+const WILD: int = SushiLevel.WILD
+## Takes a continue gives a rush order that ran out (M2).
+const RUSH_EXTRA: int = 5
 
 ## Plate type per plate id (= belt slot), -1 for an empty slot. Shared between copies.
 var types := PackedInt32Array()
@@ -31,9 +35,25 @@ var held: int = NONE
 ## Most plates the counter has held at once.
 var peak: int = 0
 var continues: int = 0
+## Bit i set: plate i is covered (M1). Shared between copies.
+var covers: int = 0
+## Bit i set: plate i has been in the window, so its cloche is off.
+var revealed: int = 0
+## Per queued bento: its rush limit (M2), 0 = none. Shared between copies.
+var rush_limits := PackedInt32Array()
+## Per open slot: takes left for its rush order, -1 when it does not rush.
+var rush_left := PackedInt32Array()
+## Why the level was lost: &"overflow" (R4) or &"rush" (M2); &"" while it is not.
+var lost_reason: StringName = &""
+## The open slot whose rush order ran out, -1 when none.
+var rush_slot: int = NONE
+## The level has chef's specials (the search key then also covers the counter). Shared.
+var has_wild: bool = false
 var record: bool = false
-## {"kind": take|pack|counter|close|open|advance|lost|won, ...} in the order they happened.
+## {"kind": take|pack|counter|close|open|advance|reveal|lost|rush_out|won, ...} in order.
 var events: Array[Dictionary] = []
+## Open slots that opened during the current take (their rush count starts with the next one).
+var _fresh: int = 0
 
 
 static func start(level: SushiLevel) -> SushiState:
@@ -43,16 +63,22 @@ static func start(level: SushiLevel) -> SushiState:
 	state.window = level.window
 	state.preview = level.preview
 	state.counter = Rack.new(level.counter)
+	state.covers = level.covers
+	state.rush_limits = level.rush
+	state.has_wild = level.belt.has(WILD)
 	for i in level.belt.size():
 		if level.belt[i] >= 0:
 			state.belt_mask |= 1 << i
 	state.open_bento.resize(level.open)
 	state.open_bento.fill(NONE)
+	state.rush_left.resize(level.open)
+	state.rush_left.fill(NONE)
 	state.open_plates.resize(level.open * BENTO_SIZE)
 	state.open_plates.fill(NONE)
 	for slot in level.open:
 		state._open_next(slot)
 	state._roll_on()
+	state._reveal()
 	return state
 
 
@@ -73,6 +99,13 @@ func copy() -> SushiState:
 	state.held = held
 	state.peak = peak
 	state.continues = continues
+	state.covers = covers
+	state.revealed = revealed
+	state.rush_limits = rush_limits
+	state.rush_left = rush_left.duplicate()
+	state.lost_reason = lost_reason
+	state.rush_slot = rush_slot
+	state.has_wild = has_wild
 	return state
 
 
@@ -102,6 +135,11 @@ func ring_position(plate: int) -> int:
 	return posmod(plate + offset, types.size())
 
 
+## True while plate `plate` still wears its cloche (M1): covered and not yet in the window.
+func is_covered(plate: int) -> bool:
+	return (covers >> plate) & 1 == 1 and (revealed >> plate) & 1 == 0
+
+
 ## The plate at window position `w`, or -1 (empty slot or outside the window).
 func window_plate(w: int) -> int:
 	if w < 0 or w >= window:
@@ -128,12 +166,17 @@ func open_fill(slot: int) -> int:
 	return fill
 
 
-## True if an open bento takes plates of `type`.
+## True if an open bento takes plates of `type` (a chef's special fits any open bento).
 func fits(type: int) -> bool:
 	for slot in open_bento.size():
-		if open_type(slot) == type:
+		if open_type(slot) == type or (type == WILD and open_bento[slot] >= 0):
 			return true
 	return false
+
+
+## Takes left for the rush order in open slot `slot`, -1 when it does not rush.
+func rush_of(slot: int) -> int:
+	return rush_left[slot] if slot >= 0 and slot < rush_left.size() and open_bento[slot] >= 0 else NONE
 
 
 func is_won() -> bool:
@@ -152,26 +195,38 @@ func take(w: int) -> bool:
 	if plate < 0:
 		return false
 	belt_mask &= ~(1 << plate)
+	_fresh = 0
 	if record:
 		events.append({"kind": &"take", "plate": plate, "position": w})
 	if not _route(plate):
 		lost = true
+		lost_reason = &"overflow"
 		held = plate
 		if record:
 			events.append({"kind": &"lost", "plate": plate})
 		return true
 	_advance()
+	_tick_rush()
 	if record and is_won():
 		events.append({"kind": &"won"})
 	return true
 
 
-## R8: after a loss, `extra` more counter slots, the held plate goes on the counter, the belt steps.
+## R8: after an overflow, `extra` more counter slots, the held plate goes on the counter and the
+## belt steps; after a missed rush order (M2), that bento gets RUSH_EXTRA more takes.
 func continue_game(extra: int = 2) -> bool:
 	if not lost:
 		return false
 	lost = false
 	continues += 1
+	if lost_reason == &"rush":
+		lost_reason = &""
+		rush_left[rush_slot] += RUSH_EXTRA
+		rush_slot = NONE
+		if record:
+			events.append({"kind": &"continue", "extra": 0})
+		return true
+	lost_reason = &""
 	counter.capacity += extra
 	var plate := held
 	held = NONE
@@ -182,12 +237,22 @@ func continue_game(extra: int = 2) -> bool:
 	return true
 
 
+## Belt (32 bits), offset (5), per open slot its bento and fill (8 each) and rush count (5 each).
+## With chef's specials the counter's dishes are not implied by the rest, so they are mixed in.
 func solver_key() -> int:
 	var key := belt_mask | (posmod(offset, types.size()) << 32)
 	var shift := 37
 	for slot in open_bento.size():
 		key |= ((open_bento[slot] + 1) | (open_fill(slot) << 6)) << shift
 		shift += 8
+	for slot in open_bento.size():
+		key |= (rush_left[slot] + 1) << shift
+		shift += 5
+	if has_wild:
+		var dishes := 0
+		for plate in counter.items:
+			dishes += 1 << (3 * types[plate])
+		key = _mix(key) ^ _mix(dishes + 0x5bd1e995)
 	return key
 
 
@@ -220,13 +285,14 @@ func solver_goal() -> bool:
 	return is_won()
 
 
-## R4: into the fullest open bento of its type, else onto the counter; false on overflow.
+## R4: into the fullest open bento of its type (M3: a chef's special into the fullest open bento
+## of any type), else onto the counter; false on overflow.
 func _route(plate: int) -> bool:
 	var type := types[plate]
 	var best := NONE
 	var best_fill := -1
 	for slot in open_bento.size():
-		if open_type(slot) == type:
+		if open_type(slot) == type or (type == WILD and open_bento[slot] >= 0):
 			var fill := open_fill(slot)
 			if fill > best_fill:
 				best = slot
@@ -270,8 +336,12 @@ func _open_next(slot: int) -> void:
 		open_plates[slot * BENTO_SIZE + cell] = NONE
 	if next_bento >= queue.size():
 		open_bento[slot] = NONE
+		rush_left[slot] = NONE
 		return
 	open_bento[slot] = next_bento
+	var limit := rush_limits[next_bento] if next_bento < rush_limits.size() else 0
+	rush_left[slot] = limit if limit > 0 else NONE
+	_fresh |= 1 << slot
 	next_bento += 1
 	if record:
 		events.append({"kind": &"open", "slot": slot, "bento": open_bento[slot]})
@@ -285,6 +355,44 @@ func _advance() -> void:
 	var steps := 1 + _roll_on()
 	if record:
 		events.append({"kind": &"advance", "steps": steps})
+	_reveal()
+
+
+## M1: covered plates in the window lose their cloche for good.
+func _reveal() -> void:
+	if covers == 0:
+		return
+	for w in window:
+		var plate := window_plate(w)
+		if plate >= 0 and is_covered(plate):
+			revealed |= 1 << plate
+			if record:
+				events.append({"kind": &"reveal", "plate": plate})
+
+
+## M2: after a take, every rush order still open (and not just opened) has one take fewer; one
+## that reaches 0 loses the level.
+func _tick_rush() -> void:
+	if is_won():
+		return
+	for slot in open_bento.size():
+		if open_bento[slot] < 0 or rush_left[slot] < 0 or (_fresh >> slot) & 1 == 1:
+			continue
+		rush_left[slot] -= 1
+		if rush_left[slot] <= 0:
+			lost = true
+			lost_reason = &"rush"
+			rush_slot = slot
+			if record:
+				events.append({"kind": &"rush_out", "slot": slot})
+			return
+
+
+## splitmix64's finaliser: spreads a key's bits so mixed keys rarely collide.
+static func _mix(x: int) -> int:
+	x = (x ^ (x >> 30)) * -4658895280553007687
+	x = (x ^ (x >> 27)) * -7723592293110705685
+	return x ^ (x >> 31)
 
 
 func _roll_on() -> int:

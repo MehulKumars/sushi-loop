@@ -3,14 +3,23 @@ extends RefCounted
 ## One Sushi Loop level as baked in data/levels/sushi_v2.json: the belt (a plate type per slot, -1
 ## for empty), the bento queue and the knobs (open bentos, window, counter, queue preview), plus
 ## the generator's ratings. Rules: docs/SUSHI_LOOP.md. In the file the belt and queue are short
-## strings ("01.2" = types 0, 1, an empty slot, type 2), so a thousand levels stay small.
+## strings ("01.2" = types 0, 1, an empty slot, type 2; "a" = a covered type 0, "*" a chef's
+## special), so a thousand levels stay small.
 
 const MIN_BELT: int = 12
 const MAX_BELT: int = 32
+## Dishes (types 0-6). The chef's special is WILD, not a dish.
 const TYPE_COUNT: int = 7
-## Character per plate type in the baked strings; EMPTY marks an empty belt slot.
+## The chef's special (M3): fits any open bento.
+const WILD: int = 7
+## Character per plate type in the baked strings; COVERED for a covered plate (M1), EMPTY for an
+## empty belt slot, WILD_CHAR for a chef's special.
 const DIGITS: String = "0123456"
+const COVERED: String = "abcdefg"
 const EMPTY: String = "."
+const WILD_CHAR: String = "*"
+## Most takes a rush order may allow (it must fit the state's search key).
+const MAX_RUSH: int = 30
 
 var id: int = 0
 var belt := PackedInt32Array()
@@ -30,6 +39,10 @@ var star_peak: int = 5
 var greedy: float = -1.0
 var careful: float = -1.0
 var seed: int = 0
+## Bit i set: the plate in belt slot i is covered (M1).
+var covers: int = 0
+## Per queued bento: takes allowed once it opens (M2), 0 = no rush. Empty when nothing rushes.
+var rush := PackedInt32Array()
 
 
 static func make(belt_types: Array, bento_types: Array, open_count: int = 2, window_size: int = 3,
@@ -48,7 +61,9 @@ static func from_dict(d: Dictionary) -> SushiLevel:
 	var level := SushiLevel.new()
 	level.id = int(d.get("id", 0))
 	level.belt = _ints(d.get("belt", []))
+	level.covers = _covers(d.get("belt", []))
 	level.bentos = _ints(d.get("bentos", []))
+	level.rush = _ints(d.get("rush", []))
 	if d.has("rate"):
 		level.greedy = float(d.rate[0])
 		level.careful = float(d.rate[1])
@@ -70,16 +85,39 @@ static func from_dict(d: Dictionary) -> SushiLevel:
 ## `with_seed` is off (the baked file leaves it out: the game never needs it).
 func to_dict(with_seed: bool = true) -> Dictionary:
 	var out := {
-		"id": id, "role": role, "belt": _text(belt), "bentos": _text(bentos), "open": open,
+		"id": id, "role": role, "belt": _text(belt, covers), "bentos": _text(bentos), "open": open,
 		"window": window, "counter": counter, "preview": preview, "par": par, "star_peak": star_peak,
 		"rate": [snappedf(greedy, 0.005), snappedf(careful, 0.005)],
 	}
+	if has_rush():
+		out.rush = Array(rush)
 	if with_seed:
 		out.seed = seed
 	return out
 
 
-## "" when the level can be played: sizes in range and 3 plates of each type per bento.
+func is_covered(slot: int) -> bool:
+	return (covers >> slot) & 1 == 1
+
+
+## The rush limit of queued bento `index` (M2), 0 when it does not rush.
+func rush_of(index: int) -> int:
+	return rush[index] if index >= 0 and index < rush.size() else 0
+
+
+func has_rush() -> bool:
+	for limit in rush:
+		if limit > 0:
+			return true
+	return false
+
+
+func wild_count() -> int:
+	return belt.count(WILD)
+
+
+## "" when the level can be played: sizes in range, and 3 plates per bento of its dish where each
+## chef's special stands in for one of them (M3).
 func validate() -> String:
 	if belt.size() < MIN_BELT or belt.size() > MAX_BELT:
 		return "belt has %d slots (%d-%d)" % [belt.size(), MIN_BELT, MAX_BELT]
@@ -92,22 +130,40 @@ func validate() -> String:
 	if counter < 0:
 		return "counter is %d" % counter
 	var plates: Dictionary[int, int] = {}
-	for t in belt:
-		if t < -1 or t >= TYPE_COUNT:
+	var wilds := 0
+	for slot in belt.size():
+		var t := belt[slot]
+		if t < -1 or t > WILD:
 			return "unknown plate type %d" % t
-		if t >= 0:
+		if t == WILD:
+			wilds += 1
+		elif t >= 0:
 			plates[t] = plates.get(t, 0) + 1
+		if is_covered(slot) and (t < 0 or t == WILD):
+			return "slot %d is covered but holds no dish" % slot
+	if covers >> belt.size() != 0:
+		return "a cover lies beyond the belt"
 	var needed: Dictionary[int, int] = {}
 	for t in bentos:
 		if t < 0 or t >= TYPE_COUNT:
 			return "unknown bento type %d" % t
 		needed[t] = needed.get(t, 0) + 3
+	var short := 0
 	for t: int in needed:
-		if plates.get(t, 0) != needed[t]:
+		if plates.get(t, 0) > needed[t]:
 			return "type %d has %d plates for %d bentos" % [t, plates.get(t, 0), needed[t] / 3]
+		short += needed[t] - plates.get(t, 0)
+	if short != wilds:
+		return "%d plates missing but %d chef's specials" % [short, wilds]
 	for t: int in plates:
 		if not needed.has(t):
 			return "type %d has plates but no bento" % t
+	if not rush.is_empty():
+		if rush.size() != bentos.size():
+			return "rush has %d limits for %d bentos" % [rush.size(), bentos.size()]
+		for limit in rush:
+			if limit < 0 or limit > MAX_RUSH:
+				return "rush limit %d (0-%d)" % [limit, MAX_RUSH]
 	return ""
 
 
@@ -124,7 +180,7 @@ func type_count() -> int:
 	return seen.size()
 
 
-## Types from an array of ints or a baked string ("01.2").
+## Types from an array of ints or a baked string ("01.2", "a" = covered type 0, "*" = WILD).
 static func _ints(values: Variant) -> PackedInt32Array:
 	var out := PackedInt32Array()
 	if values is Array:
@@ -132,12 +188,38 @@ static func _ints(values: Variant) -> PackedInt32Array:
 			out.append(int(v))
 	elif values is String:
 		for c: String in values:
-			out.append(-1 if c == EMPTY else DIGITS.find(c))
+			if c == EMPTY:
+				out.append(-1)
+			elif c == WILD_CHAR:
+				out.append(WILD)
+			elif COVERED.contains(c):
+				out.append(COVERED.find(c))
+			else:
+				out.append(DIGITS.find(c))
 	return out
 
 
-static func _text(types: PackedInt32Array) -> String:
+## The covered slots of a baked belt string, as a bit mask (0 for an array belt).
+static func _covers(values: Variant) -> int:
+	var mask := 0
+	if values is String:
+		var text: String = values
+		for i in text.length():
+			if COVERED.contains(text[i]):
+				mask |= 1 << i
+	return mask
+
+
+static func _text(types: PackedInt32Array, covered: int = 0) -> String:
 	var out := ""
-	for t in types:
-		out += EMPTY if t < 0 else DIGITS[t]
+	for i in types.size():
+		var t := types[i]
+		if t < 0:
+			out += EMPTY
+		elif t == WILD:
+			out += WILD_CHAR
+		elif (covered >> i) & 1 == 1:
+			out += COVERED[t]
+		else:
+			out += DIGITS[t]
 	return out

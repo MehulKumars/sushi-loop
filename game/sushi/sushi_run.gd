@@ -21,6 +21,8 @@ var record: bool = false:
 var _history: Array[SushiState] = []
 var _history_safe: Array[bool] = []
 var _free_undos: int = FREE_UNDOS
+## Counter slots continues added (a continue after a missed rush order adds takes, not slots).
+var _extra_slots: int = 0
 
 
 func _init(level_data: SushiLevel) -> void:
@@ -87,9 +89,12 @@ func rewind_to_safe(extra: bool = false) -> bool:
 ## R8 after a loss; the history keeps the extra slots.
 func continue_game() -> bool:
 	state.events.clear()
+	var overflow := state.lost_reason != &"rush"
 	if not state.continue_game(CONTINUE_SLOTS):
 		return false
 	continues += 1
+	if overflow:
+		_extra_slots += CONTINUE_SLOTS
 	safe = false
 	return true
 
@@ -104,7 +109,7 @@ func stars() -> int:
 
 
 func _restore(previous: SushiState) -> void:
-	previous.counter.capacity = level.counter + continues * CONTINUE_SLOTS
+	previous.counter.capacity = level.counter + _extra_slots
 	previous.continues = continues
 	previous.record = record
 	previous.events.clear()
