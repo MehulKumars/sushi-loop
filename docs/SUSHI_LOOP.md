@@ -283,11 +283,12 @@ Each chapter is a restaurant with its own belt, rail, wood and noren colours (`S
 
 - **First launch:** a player who has not won a level goes from the splash straight into level 1
   (guided); no menu first. Every later launch opens home.
-- **Home:** the game's mark and name under the current restaurant's noren curtain; the
-  restaurant as a card (name, twist, stars, levels won; a tap opens its levels); one big Play
-  button for the next level ("Level 15 · Hard" when it is one); then **Levels**, **How to play**
-  and **Shop**. The top bar holds coins, the daily streak, the chef's gift and Settings. Win →
-  Next goes straight into the next level, never through home.
+- **Home:** the current restaurant's shop front (its noren curtain with the game's name on it,
+  the belt gliding in front of the hem); the restaurant as a card (name, twist, stars, levels
+  won; a tap opens its levels); one big Play button for the next level ("Level 15 · Hard" when
+  it is one); then **Levels**, **How to play** and **Shop**. The top bar holds coins, the daily
+  streak, the chef's gift and Settings. Win → Next goes straight into the next level, never
+  through home.
 - **Levels:** every chapter as a row (restaurant colour, name, twist, stars, or a lock); one row
   open at a time shows its ten levels as tiles with their stars (the next one highlighted);
   a won level replays on a tap.

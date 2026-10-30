@@ -6,7 +6,7 @@ What to change for every game, what you can change if the game needs it, and wha
 
 | What | Where | Notes |
 |---|---|---|
-| Game name | `project.godot` > `config/name` | Shown on the splash and on home (under the restaurant's noren curtain) |
+| Game name | `project.godot` > `config/name` | Shown on the splash and on home (one word per panel of the restaurant's noren curtain) |
 | Style | Project Settings > GUI > Theme > Custom | This game's is `sushi` (`core/ui/themes/sushi.tres`, the only style). A new one is made in `core/ui/styles/` and built by `tools/build_theme.gd` ([UI_KIT.md](UI_KIT.md)) |
 | Package name | `export_presets.cfg` > `package/unique_name` (both presets) | For example `com.yourstudio.halves`. Never ship `com.changeme.template`; it can never change after the first upload |
 | App name on the phone | `export_presets.cfg` > `package/name` | |

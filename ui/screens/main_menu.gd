@@ -1,20 +1,26 @@
 extends Screen
-## Home: the game's mark and name under the current restaurant's noren curtain, the restaurant as
-## a card (name, twist, stars, levels won; a tap opens its levels), one big Play button for the
-## next level, then Levels, How to play and Shop. The top bar holds coins, the daily streak, the
-## chef's gift and Settings. A brand-new player never sees it first: the splash goes straight into
-## level 1. Back asks before quitting (Android convention).
+## Home: the current restaurant's shop front (its noren curtain with the game's name on it, the
+## belt gliding in front of the hem), the restaurant as a card (name, twist, stars, levels won; a
+## tap opens its levels), one big Play button for the next level, then Levels, How to play and
+## Shop. The top bar holds coins, the daily streak, the chef's gift and Settings. A brand-new
+## player never sees it first: the splash goes straight into level 1. Back asks before quitting.
 
 const GIFT := preload("res://assets/deco/gift.png")
 const LANTERN := preload("res://assets/deco/lantern.png")
 const STREAK := preload("res://assets/deco/tea.png")
+## The belt's height; the curtain's hem hides behind its upper half.
+const BELT: float = 120.0
+## The shop front grows with the screen between these heights, keeping FRONT_AIR free around it.
+const FRONT_MIN: float = 300.0
+const FRONT_MAX: float = 420.0
+const FRONT_AIR: float = 96.0
 
 @onready var _coins: CurrencyPill = %Coins
 @onready var _play: Button = %PlayButton
 @onready var _logo: Control = %Logo
 
 ## Built in _ready (the _build_* functions).
-var _noren: SushiNoren
+var _front: Control
 var _gift: Button
 var _gift_badge: Label
 var _streak_badge: Label
@@ -24,21 +30,17 @@ func _ready() -> void:
 	_coins.value = Progress.coins()
 	var next := Progress.next_level(SushiLevels.count())
 	var chapter := SushiLevels.chapter(next)
-	%Title.text = ProjectSettings.get_setting("application/config/name", "Sushi Loop")
 	_play.text = _play_text(next)
 	_play.pressed.connect(_start.bind(next))
 	%SettingsButton.pressed.connect(_on_settings)
-	_build_noren(chapter)
 	_build_top_bar()
-	_build_mark(chapter)
+	_build_front(chapter)
 	_build_card(chapter)
 	_build_links()
+	resized.connect(_fit_front)
+	_fit_front()
 	SushiSfx.music()
 	_intro()
-	# The curtain stops just below the top bar, whatever the notch and screen size.
-	await get_tree().process_frame
-	if is_inside_tree():
-		_noren.offset_bottom = (%SettingsButton as Control).get_global_rect().end.y + 6.0
 
 
 func on_back() -> void:
@@ -66,16 +68,6 @@ func _on_settings() -> void:
 	_coins.value = Progress.coins()
 
 
-## The curtain hangs from the very top (under the status bar), behind the top bar.
-func _build_noren(chapter: int) -> void:
-	_noren = SushiNoren.new()
-	_noren.color = SushiPalette.shop(chapter).noren
-	_noren.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	_noren.offset_bottom = 230.0
-	add_child(_noren)
-	move_child(_noren, 1)
-
-
 ## The daily streak and the chef's gift, each with a badge, between the coins and Settings.
 func _build_top_bar() -> void:
 	var settings: Control = %SettingsButton
@@ -93,17 +85,45 @@ func _build_top_bar() -> void:
 	_show_badges()
 
 
-## Plates gliding along a stretch of the chapter's belt, above the game's name.
-func _build_mark(chapter: int) -> void:
-	var mark := SushiLogo.new()
-	mark.shop = SushiPalette.shop(chapter)
-	mark.custom_minimum_size = Vector2(560, 120)
-	mark.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_logo.add_child(mark)
-	_logo.move_child(mark, 0)
+## The shop front above the tagline: the restaurant's noren with one word of the game's name on
+## each panel, and plates gliding along its belt in front of the hem. Equal free space above and
+## below it.
+func _build_front(chapter: int) -> void:
+	var shop := SushiPalette.shop(chapter)
+	_front = Control.new()
+	_front.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var noren := SushiNoren.new()
+	noren.color = shop.noren
+	noren.words = String(ProjectSettings.get_setting("application/config/name", "Sushi Loop")).split(" ", false)
+	noren.font = get_theme_font(&"font", &"TitleLabel")
+	noren.font_size = get_theme_font_size(&"font_size", &"TitleLabel")
+	noren.ink = get_theme_color(&"bg_top", &"Tokens")
+	noren.hidden_hem = BELT * 0.5
+	_front.add_child(noren)
+	noren.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	noren.offset_bottom = -BELT * 0.5
+	var belt := SushiLogo.new()
+	belt.shop = shop
+	_front.add_child(belt)
+	belt.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+	belt.offset_top = -BELT
+	_logo.add_child(_front)
+	_logo.move_child(_front, 0)
 	var layout := _logo.get_parent()
-	layout.add_child(_spacer(true))
-	layout.move_child(layout.get_child(layout.get_child_count() - 1), _logo.get_index())
+	for after in [false, true]:
+		var gap := _spacer(true)
+		layout.add_child(gap)
+		layout.move_child(gap, _logo.get_index() + (1 if after else 0))
+	# Again whenever the rest of home changes height (the tagline wraps only once it has a width).
+	(layout as Control).minimum_size_changed.connect(_fit_front)
+
+
+## The shop front takes the room the rest of home leaves (less some air), within its limits.
+func _fit_front() -> void:
+	var safe := get_node(^"Safe") as MarginContainer
+	var room := size.y - safe.get_theme_constant(&"margin_top") - safe.get_theme_constant(&"margin_bottom")
+	var others := (_logo.get_parent() as Control).get_combined_minimum_size().y - _front.custom_minimum_size.y
+	_front.custom_minimum_size.y = clampf(room - others - FRONT_AIR, FRONT_MIN, FRONT_MAX)
 
 
 ## The restaurant the player is at: a tap opens its levels.
@@ -151,7 +171,7 @@ func _build_card(chapter: int) -> void:
 	var layout := _play.get_parent()
 	layout.add_child(card)
 	layout.move_child(card, _play.get_index())
-	layout.add_child(_spacer(false, 18.0))
+	layout.add_child(_spacer(false, 26.0))
 	layout.move_child(layout.get_child(layout.get_child_count() - 1), _play.get_index())
 
 

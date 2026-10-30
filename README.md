@@ -69,9 +69,10 @@ real video or full-screen ad would play). They are not the Play Store build.
 
 ## Status
 
-Version 0.5.0: three new mechanics (covered dishes, rush orders, the chef's special), 1000
+Version 0.5.1: three new mechanics (covered dishes, rush orders, the chef's special), 1000
 levels rebuilt so none can be won by tapping one spot, losing that counts (step back costs an
-undo), a classic home with Levels, How to play and a coin shop, and a daily streak. Before Google
+undo), a classic home (the restaurant's shop front, Levels, How to play and a coin shop), and a
+daily streak. Before Google
 Play: real ads (AdMob account and plugin), a privacy policy page, a phone feel test, the final
 name, store page and release signing.
 
